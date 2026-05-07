@@ -24,6 +24,7 @@ import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CommitsIndexRouteImport } from './routes/commits.index'
 import { Route as CommitsShaRouteImport } from './routes/commits.$sha'
+import { Route as ApiPublicGithubWebhookRouteImport } from './routes/api/public/github-webhook'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
@@ -100,6 +101,11 @@ const CommitsShaRoute = CommitsShaRouteImport.update({
   path: '/commits/$sha',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGithubWebhookRoute = ApiPublicGithubWebhookRouteImport.update({
+  id: '/api/public/github-webhook',
+  path: '/api/public/github-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/terms-of-service': typeof TermsOfServiceRoute
   '/commits/$sha': typeof CommitsShaRoute
   '/commits/': typeof CommitsIndexRoute
+  '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/terms-of-service': typeof TermsOfServiceRoute
   '/commits/$sha': typeof CommitsShaRoute
   '/commits': typeof CommitsIndexRoute
+  '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/terms-of-service': typeof TermsOfServiceRoute
   '/commits/$sha': typeof CommitsShaRoute
   '/commits/': typeof CommitsIndexRoute
+  '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/commits/$sha'
     | '/commits/'
+    | '/api/public/github-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/commits/$sha'
     | '/commits'
+    | '/api/public/github-webhook'
   id:
     | '__root__'
     | '/'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/commits/$sha'
     | '/commits/'
+    | '/api/public/github-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   CommitsShaRoute: typeof CommitsShaRoute
   CommitsIndexRoute: typeof CommitsIndexRoute
+  ApiPublicGithubWebhookRoute: typeof ApiPublicGithubWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -332,6 +345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommitsShaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/github-webhook': {
+      id: '/api/public/github-webhook'
+      path: '/api/public/github-webhook'
+      fullPath: '/api/public/github-webhook'
+      preLoaderRoute: typeof ApiPublicGithubWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -351,6 +371,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsOfServiceRoute: TermsOfServiceRoute,
   CommitsShaRoute: CommitsShaRoute,
   CommitsIndexRoute: CommitsIndexRoute,
+  ApiPublicGithubWebhookRoute: ApiPublicGithubWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

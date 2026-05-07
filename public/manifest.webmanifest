@@ -1,0 +1,13 @@
+{
+  "name": "DevANT",
+  "short_name": "DevANT",
+  "description": "Developer Intelligence, Supercharged.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0A0A0F",
+  "theme_color": "#6C63FF",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -68,8 +68,18 @@ async function readRequestBody(request) {
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `localhost:${port}`}`);
-    if (url.pathname === "/" || url.pathname.startsWith("/assets/") || ["/favicon.svg", "/manifest.webmanifest"].includes(url.pathname)) {
-      const servedStatic = await serveStaticFile(request, response, url.pathname === "/" ? "/index.html" : url.pathname);
+    const hasStaticExtension = extname(url.pathname) !== "";
+    if (request.method === "GET" || request.method === "HEAD") {
+      if (url.pathname.startsWith("/assets/") || hasStaticExtension) {
+        const servedStatic = await serveStaticFile(request, response, url.pathname === "/" ? "/index.html" : url.pathname);
+        if (servedStatic) {
+          return;
+        }
+      }
+    }
+
+    if (url.pathname === "/") {
+      const servedStatic = await serveStaticFile(request, response, "/index.html");
       if (servedStatic) {
         return;
       }

@@ -1,8 +1,10 @@
 {
+  "id": "/",
   "name": "DevANT",
   "short_name": "DevANT",
   "description": "Developer Intelligence, Supercharged.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0A0A0F",

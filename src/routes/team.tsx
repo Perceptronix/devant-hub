@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
-import { demoTeam } from "@/lib/demo-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Crown, Users2, GitFork, Link2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth, getGitHubToken } from "@/lib/auth";
+import { getSelectedImportedProject } from "@/lib/imported-projects";
+import { getRepo, listCollaborators, listContributors } from "@/lib/github/client";
 
 export const Route = createFileRoute("/team")({
   head: () => ({ meta: [{ title: "Team — DevANT" }] }),
@@ -55,23 +58,95 @@ function Permission({ label }: { label: string }) {
 }
 
 function Team() {
+  const { user } = useAuth();
+  const [owner, setOwner] = useState<Member | null>(null);
+  const [collaborators, setCollaborators] = useState<Member[]>([]);
+  const [contributors, setContributors] = useState<Member[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!user) return;
+      const selected = getSelectedImportedProject(user.id);
+      const token = getGitHubToken(user);
+      if (!selected || !token) {
+        setOwner(null);
+        setCollaborators([]);
+        setContributors([]);
+        return;
+      }
+
+      try {
+        const [repo, collabs, contribs] = await Promise.all([
+          getRepo(token, selected.owner, selected.repo),
+          listCollaborators(token, selected.owner, selected.repo),
+          listContributors(token, selected.owner, selected.repo),
+        ]);
+
+        if (!mounted) return;
+        setOwner({
+          login: repo.owner?.login ?? selected.owner,
+          name: repo.owner?.login ?? selected.owner,
+          avatar: repo.owner?.avatar_url ?? "",
+          contrib: 0,
+          add: 0,
+          del: 0,
+        });
+
+        setCollaborators(
+          collabs.map((m: any) => ({
+            login: m.login,
+            name: m.login,
+            avatar: m.avatar_url ?? "",
+            contrib: 0,
+            add: 0,
+            del: 0,
+          }))
+        );
+
+        setContributors(
+          contribs.map((m: any) => ({
+            login: m.login,
+            name: m.login,
+            avatar: m.avatar_url ?? "",
+            contrib: m.contributions ?? 0,
+            add: 0,
+            del: 0,
+          }))
+        );
+      } catch (err) {
+        console.error("Failed to load team", err);
+      }
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
   return (
     <>
       <PageHeader title="Team" description="Members fetched from GitHub, grouped by access level." />
+      {!user ? (
+        <div className="glass rounded-xl p-6 mb-6">Sign in and import a project first.</div>
+      ) : !owner ? (
+        <div className="glass rounded-xl p-6 mb-6">No team data yet. Import a project from New Project+ first.</div>
+      ) : null}
 
       <Section title="Owner" icon={Crown} accent="warning">
-        <MemberCard m={demoTeam.owner} role="owner" linked />
+        {owner ? <MemberCard m={owner} role="owner" linked /> : null}
       </Section>
 
       <Section title="Collaborators" icon={Users2} accent="primary">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {demoTeam.collaborators.map((m, i) => <MemberCard key={m.login} m={m} role="collaborator" linked={i === 0} />)}
+          {collaborators.map((m, i) => <MemberCard key={m.login} m={m} role="collaborator" linked={i === 0} />)}
         </div>
       </Section>
 
       <Section title="Contributors" icon={GitFork} accent="cyan">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {demoTeam.contributors.map((m) => <MemberCard key={m.login} m={m} role="contributor" />)}
+          {contributors.map((m) => <MemberCard key={m.login} m={m} role="contributor" />)}
         </div>
       </Section>
     </>

@@ -1,11 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Copy, Sparkles, GitCommit } from "lucide-react";
-import { demoCommits, demoPatch } from "@/lib/demo-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DiffFile } from "@/components/DiffFile";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect, useState } from "react";
+import { useAuth, getGitHubToken } from "@/lib/auth";
+import { getSelectedImportedProject } from "@/lib/imported-projects";
+import { getCommit } from "@/lib/github/client";
+
+type CommitDetailModel = {
+  sha: string;
+  message: string;
+  author: string;
+  avatar?: string;
+  date: string;
+  branch: string;
+  additions: number;
+  deletions: number;
+  files: Array<{ filename: string; status: string; additions: number; deletions: number; patch: string }>;
+};
 
 export const Route = createFileRoute("/commits/$sha")({
   head: ({ params }) => ({ meta: [{ title: `Commit ${params.sha.slice(0, 7)} — DevANT` }] }),
@@ -14,14 +28,67 @@ export const Route = createFileRoute("/commits/$sha")({
 
 function CommitDetail() {
   const { sha } = Route.useParams();
-  const c = demoCommits.find((x) => x.sha === sha) ?? demoCommits[0];
+  const { user } = useAuth();
+  const [c, setCommit] = useState<CommitDetailModel | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Simulated patch data with multiple files
-  const files = [
-    { filename: "src/routes/login.tsx", status: "modified", additions: 18, deletions: 4, patch: demoPatch },
-    { filename: "src/lib/auth.ts", status: "added", additions: 42, deletions: 0, patch: `@@ -0,0 +1,12 @@\n+export async function signInWithGitHub() {\n+  return supabase.auth.signInWithOAuth({\n+    provider: "github",\n+    options: { scopes: "repo read:org" }\n+  });\n+}\n+\n+export async function signOut() {\n+  await supabase.auth.signOut();\n+}` },
-    { filename: "README.md", status: "modified", additions: 3, deletions: 1, patch: `@@ -1,5 +1,7 @@\n # DevANT\n \n-Project management dashboard.\n+## DevANT — Developer Intelligence, Supercharged\n+\n+GitHub-integrated project management dashboard with AI-powered commit insights.\n` },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!user) return;
+      const selected = getSelectedImportedProject(user.id);
+      const token = getGitHubToken(user);
+      if (!selected || !token) {
+        setCommit(null);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const detail = await getCommit(token, selected.owner, selected.repo, sha);
+        if (!mounted) return;
+        setCommit({
+          sha: detail.sha,
+          message: detail.commit?.message ?? "",
+          author: detail.author?.login ?? detail.commit?.author?.name ?? "unknown",
+          avatar: detail.author?.avatar_url,
+          date: detail.commit?.author?.date ?? new Date().toISOString(),
+          branch: selected.defaultBranch ?? "main",
+          additions: detail.stats?.additions ?? 0,
+          deletions: detail.stats?.deletions ?? 0,
+          files: Array.isArray(detail.files)
+            ? detail.files.map((f: any) => ({
+                filename: f.filename,
+                status: f.status,
+                additions: f.additions ?? 0,
+                deletions: f.deletions ?? 0,
+                patch: f.patch ?? "No patch available for this file type.",
+              }))
+            : [],
+        });
+      } catch (err) {
+        console.error("Failed to load commit detail", err);
+        setCommit(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [sha, user]);
+
+  if (!user) {
+    return <div className="glass rounded-xl p-6">Sign in and import a project first.</div>;
+  }
+  if (loading) {
+    return <div className="glass rounded-xl p-6">Loading commit details...</div>;
+  }
+  if (!c) {
+    return <div className="glass rounded-xl p-6">Commit not found for your selected imported project.</div>;
+  }
 
   return (
     <>
@@ -74,22 +141,13 @@ function CommitDetail() {
             <span className="text-[10px] uppercase text-muted-foreground tracking-wider ml-auto">Claude</span>
           </div>
           <p className="text-sm leading-relaxed text-foreground">
-            This commit migrates the authentication flow from Google OAuth to GitHub OAuth using Supabase Auth.
-            It introduces a new <code className="font-mono text-xs bg-surface px-1 rounded">signInWithGitHub</code> helper,
-            updates the login button copy, and refreshes README with the new tagline. Net change is small but touches
-            the user-facing entry point of the app.
+            Live commit data fetched from GitHub for the selected imported project.
           </p>
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {c.tags.map((t) => (
-              <Badge key={t} variant="outline" className="text-[10px] border-primary/30 text-primary">{t}</Badge>
-            ))}
-            <Badge variant="outline" className="text-[10px] border-cyan/30 text-cyan">auth</Badge>
-          </div>
         </div>
       </div>
 
       <h2 className="font-display font-semibold text-lg mb-3">Changed files</h2>
-      {files.map((f) => (
+      {c.files.map((f) => (
         <DiffFile key={f.filename} {...f} />
       ))}
     </>

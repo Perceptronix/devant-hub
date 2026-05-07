@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
-import { getSelectedImportedProject } from "@/lib/imported-projects";
-import { listCommits } from "@/lib/github/client";
+import { fetchImportedProjects, getSelectedImportedProject, setSelectedImportedProject, type ImportedProject } from "@/lib/imported-projects";
+import { getCommit, listCommits } from "@/lib/github/client";
 
 type CommitRow = {
   sha: string;
@@ -30,13 +30,21 @@ export const Route = createFileRoute("/commits/")({
 function Commits() {
   const { user } = useAuth();
   const [commits, setCommits] = useState<CommitRow[]>([]);
+  const [projects, setProjects] = useState<ImportedProject[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
       if (!user) return;
-      const selected = await getSelectedImportedProject(user.id);
+      const allProjects = await fetchImportedProjects(user.id);
+      const selected = getSelectedImportedProject(user.id) ?? allProjects[0] ?? null;
+      if (selected && (!getSelectedImportedProject(user.id) || getSelectedImportedProject(user.id)?.id !== selected.id)) {
+        setSelectedImportedProject(user.id, selected);
+      }
+      setProjects(allProjects);
+      setActiveProjectId(selected?.id ?? "");
       if (!selected) {
         setCommits([]);
         return;
@@ -48,17 +56,27 @@ function Commits() {
       }
       setLoading(true);
       try {
-        const list = await listCommits(token, selected.owner, selected.repo, { per_page: 50 });
+        const list = await listCommits(token, selected.owner, selected.repo, { per_page: 20 });
+        const detailed = await Promise.all(
+          list.map(async (c: any) => {
+            try {
+              const detail = await getCommit(token, selected.owner, selected.repo, c.sha);
+              return { ...c, detail };
+            } catch {
+              return { ...c, detail: null };
+            }
+          })
+        );
         if (!mounted) return;
         setCommits(
-          list.map((c: any) => ({
+          detailed.map((c: any) => ({
             sha: c.sha,
             author: c.author?.login ?? c.commit?.author?.name ?? "unknown",
             avatar: c.author?.avatar_url,
             message: c.commit?.message ?? "",
             branch: selected.defaultBranch ?? "main",
-            additions: 0,
-            deletions: 0,
+            additions: c.detail?.stats?.additions ?? 0,
+            deletions: c.detail?.stats?.deletions ?? 0,
             date: c.commit?.author?.date ?? new Date().toISOString(),
             tags: [],
           }))
@@ -77,13 +95,68 @@ function Commits() {
     };
   }, [user]);
 
+  async function switchProject(projectId: string) {
+    if (!user) return;
+    const next = projects.find((p) => p.id === projectId);
+    if (!next) return;
+    setSelectedImportedProject(user.id, next);
+    setActiveProjectId(projectId);
+    setLoading(true);
+    try {
+      const token = getGitHubToken(user);
+      if (!token) return;
+      const list = await listCommits(token, next.owner, next.repo, { per_page: 20 });
+      const detailed = await Promise.all(
+        list.map(async (c: any) => {
+          try {
+            const detail = await getCommit(token, next.owner, next.repo, c.sha);
+            return { ...c, detail };
+          } catch {
+            return { ...c, detail: null };
+          }
+        })
+      );
+      setCommits(
+        detailed.map((c: any) => ({
+          sha: c.sha,
+          author: c.author?.login ?? c.commit?.author?.name ?? "unknown",
+          avatar: c.author?.avatar_url,
+          message: c.commit?.message ?? "",
+          branch: next.defaultBranch ?? "main",
+          additions: c.detail?.stats?.additions ?? 0,
+          deletions: c.detail?.stats?.deletions ?? 0,
+          date: c.commit?.author?.date ?? new Date().toISOString(),
+          tags: [],
+        }))
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <>
       <PageHeader
         title="Commits"
-        description="All commits across linked projects, with AI-generated tags."
+        description="Commits for the selected linked project, with per-commit diff stats."
         action={<Button variant="outline" className="gap-1.5"><Sparkles className="size-4" /> Analyze All</Button>}
       />
+
+      {user && projects.length > 0 ? (
+        <div className="mb-4 flex items-center gap-2">
+          <label htmlFor="project-select" className="text-xs text-muted-foreground">Project</label>
+          <select
+            id="project-select"
+            className="bg-surface border border-border rounded-md px-2 py-1.5 text-sm"
+            value={activeProjectId}
+            onChange={(e) => switchProject(e.target.value)}
+          >
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.owner}/{p.repo}</option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       {!user ? (
         <div className="glass rounded-xl p-6">Sign in and import a project first.</div>

@@ -1,16 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, GitPullRequest, Bug, Clock, RefreshCw } from "lucide-react";
+import { Plus, GitPullRequest, Bug, Clock, RefreshCw, Unlink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { listUserRepos } from "@/lib/github/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   fetchImportedProjects,
   insertImportedProject,
+  removeImportedProject,
   ImportedProject,
+  getSelectedImportedProject,
   setSelectedImportedProject,
 } from "@/lib/imported-projects";
 
@@ -26,6 +39,7 @@ function Projects() {
   const [linkedProjects, setLinkedProjects] = useState<ImportedProject[]>([]);
   const [fetchingRepos, setFetchingRepos] = useState(false);
   const [search, setSearch] = useState("");
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -88,6 +102,27 @@ function Projects() {
     }
   }
 
+  async function disconnectProject(project: ImportedProject) {
+    if (!user) return;
+    setDisconnectingId(project.id);
+    const removed = await removeImportedProject(user.id, project.id);
+    if (removed) {
+      const current = getSelectedImportedProject(user.id);
+      setLinkedProjects((cur) => {
+        const nextList = cur.filter((p) => p.id !== project.id);
+        if (current?.id === project.id) {
+          if (nextList[0]) {
+            setSelectedImportedProject(user.id, nextList[0]);
+          } else {
+            window.localStorage.removeItem(`devant.selectedProject.${user.id}`);
+          }
+        }
+        return nextList;
+      });
+    }
+    setDisconnectingId(null);
+  }
+
   const filteredRepos = repos.filter((r) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
@@ -136,7 +171,30 @@ function Projects() {
                   <span className="flex items-center gap-1"><GitPullRequest className="size-3.5" /> live</span>
                   <span className="flex items-center gap-1"><Bug className="size-3.5" /> live</span>
                 </div>
-                <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs"><RefreshCw className="size-3" /> Sync</Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs"><RefreshCw className="size-3" /> Sync</Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs text-danger hover:text-danger">
+                        <Unlink className="size-3" /> Disconnect
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Disconnect project?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This removes {p.owner}/{p.repo} from DevANT only. It does not delete the repository on GitHub.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => disconnectProject(p)} disabled={disconnectingId === p.id}>
+                          {disconnectingId === p.id ? "Disconnecting..." : "Disconnect"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             </div>
           );

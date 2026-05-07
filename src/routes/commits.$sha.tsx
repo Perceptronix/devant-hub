@@ -147,9 +147,29 @@ function CommitDetail() {
       </div>
 
       <h2 className="font-display font-semibold text-lg mb-3">Changed files</h2>
-      {c.files.map((f) => (
-        <DiffFile key={f.filename} {...f} />
-      ))}
+      {c.files.length === 0 ? (
+        <div className="glass rounded-xl p-4 text-sm text-muted-foreground">No files edited for this commit.</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <aside className="glass rounded-xl p-3 h-fit lg:sticky lg:top-4">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Files</div>
+            <div className="space-y-1 max-h-[70vh] overflow-auto">
+              {c.files.map((f) => (
+                <a key={f.filename} href={`#file-${f.filename.replace(/[^a-zA-Z0-9_-]/g, "-")}`} className="block text-xs font-mono px-2 py-1 rounded hover:bg-surface-elevated truncate">
+                  {f.filename}
+                </a>
+              ))}
+            </div>
+          </aside>
+          <div className="lg:col-span-3">
+            {c.files.map((f) => (
+              <div key={f.filename} id={`file-${f.filename.replace(/[^a-zA-Z0-9_-]/g, "-")}`}>
+                <DiffFile {...f} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }

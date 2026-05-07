@@ -85,6 +85,27 @@ export async function insertImportedProject(userId: string, project: ImportedPro
   }
 }
 
+export async function removeImportedProject(userId: string, projectId: string): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (!userId || !projectId) return false;
+  try {
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", projectId)
+      .eq("created_by", userId);
+    if (error) {
+      console.error("removeImportedProject", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("removeImportedProject err", err);
+    return false;
+  }
+}
+
 export function getSelectedImportedProject(userId: string): ImportedProject | null {
   if (typeof window === "undefined") return null;
   try {

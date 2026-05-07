@@ -83,12 +83,17 @@ function Team() {
           listContributors(token, selected.owner, selected.repo),
         ]);
 
+        const contribMap = new Map<string, number>();
+        for (const m of contribs ?? []) {
+          contribMap.set(m.login, m.contributions ?? 0);
+        }
+
         if (!mounted) return;
         setOwner({
           login: repo.owner?.login ?? selected.owner,
           name: repo.owner?.login ?? selected.owner,
           avatar: repo.owner?.avatar_url ?? "",
-          contrib: 0,
+          contrib: contribMap.get(repo.owner?.login ?? selected.owner) ?? 0,
           add: 0,
           del: 0,
         });
@@ -98,7 +103,7 @@ function Team() {
             login: m.login,
             name: m.login,
             avatar: m.avatar_url ?? "",
-            contrib: 0,
+            contrib: contribMap.get(m.login) ?? 0,
             add: 0,
             del: 0,
           }))

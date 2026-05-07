@@ -3,7 +3,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { getImportedProjects, getSelectedImportedProject } from "@/lib/imported-projects";
+import { fetchImportedProjects, getSelectedImportedProject } from "@/lib/imported-projects";
+import { useEffect, useState } from "react";
+import type { ImportedProject } from "@/lib/imported-projects";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Dashboard — DevANT" }] }),
@@ -12,6 +14,31 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const { user } = useAuth();
+  const [projects, setProjects] = useState<ImportedProject[]>([]);
+  const [selected, setSelected] = useState<ImportedProject | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!user) {
+        setProjects([]);
+        setSelected(null);
+        return;
+      }
+      const [items, current] = await Promise.all([
+        fetchImportedProjects(user.id),
+        getSelectedImportedProject(user.id),
+      ]);
+      if (!mounted) return;
+      setProjects(items);
+      setSelected(current);
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   if (!user) {
     return (
@@ -23,9 +50,6 @@ function Dashboard() {
       </>
     );
   }
-
-  const projects = getImportedProjects(user.id);
-  const selected = getSelectedImportedProject(user.id);
 
   if (projects.length === 0) {
     return (

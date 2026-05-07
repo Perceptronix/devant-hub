@@ -1,3 +1,5 @@
+import { getSupabase } from "@/integrations/supabase/client";
+
 export interface ImportedProject {
   id: string;
   owner: string;
@@ -6,42 +8,81 @@ export interface ImportedProject {
   description?: string;
   defaultBranch?: string;
   private?: boolean;
-}
-
-function storageKey(userId: string) {
-  return `devant.importedProjects.${userId}`;
+  github_repo_id?: number;
 }
 
 function selectedKey(userId: string) {
   return `devant.selectedProject.${userId}`;
 }
 
-export function getImportedProjects(userId: string): ImportedProject[] {
+// Fetch imported projects for a user from Supabase `projects` table.
+export async function fetchImportedProjects(userId: string): Promise<ImportedProject[]> {
   if (typeof window === "undefined") return [];
+  if (!userId) return [];
   try {
-    const raw = window.localStorage.getItem(storageKey(userId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as ImportedProject[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("projects")
+      .select(
+        "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id"
+      )
+      .eq("created_by", userId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("fetchImportedProjects", error);
+      return [];
+    }
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      owner: r.github_repo_owner,
+      repo: r.github_repo_name,
+      defaultBranch: r.default_branch,
+      private: r.is_private,
+      github_repo_id: r.github_repo_id,
+    }));
+  } catch (err) {
+    console.error("fetchImportedProjects err", err);
     return [];
   }
 }
 
-export function saveImportedProjects(userId: string, projects: ImportedProject[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(storageKey(userId), JSON.stringify(projects));
-}
-
-export function addImportedProject(userId: string, project: ImportedProject): ImportedProject[] {
-  const current = getImportedProjects(userId);
-  const exists = current.some((p) => p.owner === project.owner && p.repo === project.repo);
-  const next = exists ? current : [project, ...current];
-  saveImportedProjects(userId, next);
-  if (!getSelectedImportedProject(userId) && next.length > 0) {
-    setSelectedImportedProject(userId, next[0]);
+// Insert a project into Supabase and return the inserted row as ImportedProject (or null).
+export async function insertImportedProject(userId: string, project: ImportedProject): Promise<ImportedProject | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const supabase = getSupabase();
+    const insert = {
+      name: project.name,
+      description: project.description ?? null,
+      github_repo_owner: project.owner,
+      github_repo_name: project.repo,
+      github_repo_id: project.github_repo_id ?? null,
+      default_branch: project.defaultBranch ?? "main",
+      is_private: project.private ?? false,
+      created_by: userId,
+    };
+    const { data, error } = await supabase.from("projects").insert(insert).select().single();
+    if (error) {
+      console.error("insertImportedProject", error);
+      return null;
+    }
+    const r: any = data;
+    return {
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      owner: r.github_repo_owner,
+      repo: r.github_repo_name,
+      defaultBranch: r.default_branch,
+      private: r.is_private,
+      github_repo_id: r.github_repo_id,
+    };
+  } catch (err) {
+    console.error("insertImportedProject err", err);
+    return null;
   }
-  return next;
 }
 
 export function getSelectedImportedProject(userId: string): ImportedProject | null {

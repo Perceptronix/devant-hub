@@ -67,7 +67,7 @@ function Team() {
     let mounted = true;
     async function load() {
       if (!user) return;
-      const selected = getSelectedImportedProject(user.id);
+      const selected = await getSelectedImportedProject(user.id);
       const token = getGitHubToken(user);
       if (!selected || !token) {
         setOwner(null);

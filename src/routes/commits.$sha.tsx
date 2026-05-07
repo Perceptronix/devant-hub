@@ -36,7 +36,7 @@ function CommitDetail() {
     let mounted = true;
     async function load() {
       if (!user) return;
-      const selected = getSelectedImportedProject(user.id);
+      const selected = await getSelectedImportedProject(user.id);
       const token = getGitHubToken(user);
       if (!selected || !token) {
         setCommit(null);
@@ -121,7 +121,7 @@ function CommitDetail() {
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="rounded-lg bg-surface-elevated p-3 text-center">
             <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Files</div>
-            <div className="text-lg font-display font-bold">{files.length}</div>
+            <div className="text-lg font-display font-bold">{c.files.length}</div>
           </div>
           <div className="rounded-lg bg-success/10 p-3 text-center">
             <div className="text-[10px] uppercase text-success tracking-wider">Added</div>

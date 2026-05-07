@@ -8,8 +8,8 @@ import { listUserRepos } from "@/lib/github/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  addImportedProject,
-  getImportedProjects,
+  fetchImportedProjects,
+  insertImportedProject,
   ImportedProject,
   setSelectedImportedProject,
 } from "@/lib/imported-projects";
@@ -28,11 +28,21 @@ function Projects() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (!user) {
-      setLinkedProjects([]);
-      return;
+    let mounted = true;
+    async function loadLinkedProjects() {
+      if (!user) {
+        setLinkedProjects([]);
+        return;
+      }
+      const projects = await fetchImportedProjects(user.id);
+      if (!mounted) return;
+      setLinkedProjects(projects);
     }
-    setLinkedProjects(getImportedProjects(user.id));
+
+    loadLinkedProjects();
+    return () => {
+      mounted = false;
+    };
   }, [user]);
 
   // Fetch GitHub repos only when user opens the dialog.
@@ -58,7 +68,7 @@ function Projects() {
     return () => { mounted = false; };
   }, [open, user]);
 
-  function importRepo(r: any) {
+  async function importRepo(r: any) {
     if (!user) return;
 
     const imported: ImportedProject = {
@@ -71,9 +81,11 @@ function Projects() {
       private: Boolean(r.private),
     };
 
-    const next = addImportedProject(user.id, imported);
-    setLinkedProjects(next);
-    setSelectedImportedProject(user.id, imported);
+    const inserted = await insertImportedProject(user.id, imported);
+    if (inserted) {
+      setLinkedProjects((cur) => [inserted, ...cur.filter((p) => !(p.owner === inserted.owner && p.repo === inserted.repo))]);
+      setSelectedImportedProject(user.id, inserted);
+    }
   }
 
   const filteredRepos = repos.filter((r) => {

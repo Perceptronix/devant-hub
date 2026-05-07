@@ -65,6 +65,20 @@ async function ghPaginate<T>(path: string, token: string, opts: GitHubFetchOpts 
   return results;
 }
 
+export async function listAllCommits(token: string, owner: string, repo: string, opts: CommitListOpts = {}, max = 500): Promise<any[]> {
+  const results: any[] = [];
+  let page = opts.page ?? 1;
+  const perPage = opts.per_page ?? 100;
+  while (results.length < max) {
+    const batch = await listCommits(token, owner, repo, { ...opts, per_page: perPage, page });
+    if (!Array.isArray(batch) || batch.length === 0) break;
+    results.push(...batch);
+    if (batch.length < perPage) break;
+    page += 1;
+  }
+  return results.slice(0, max);
+}
+
 // ---------- Repository ----------
 export const getRepo = (token: string, owner: string, repo: string) =>
   ghFetch<any>(`/repos/${owner}/${repo}`, token);

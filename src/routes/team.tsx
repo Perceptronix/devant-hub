@@ -6,8 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import { Crown, Users2, GitFork, Link2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
-import { getSelectedImportedProject } from "@/lib/imported-projects";
-import { getRepo, listCollaborators, listContributors } from "@/lib/github/client";
+import { fetchImportedProjects } from "@/lib/imported-projects";
+import { getCommit, getRepo, listAllCommits, listCollaborators, listContributors } from "@/lib/github/client";
+import { StatCard } from "@/components/StatCard";
+import { GitCommit, Plus, Minus } from "lucide-react";
 
 export const Route = createFileRoute("/team")({
   head: () => ({ meta: [{ title: "Team — DevANT" }] }),
@@ -62,63 +64,118 @@ function Team() {
   const [owner, setOwner] = useState<Member | null>(null);
   const [collaborators, setCollaborators] = useState<Member[]>([]);
   const [contributors, setContributors] = useState<Member[]>([]);
+  const [summary, setSummary] = useState({ commits: 0, added: 0, removed: 0 });
 
   useEffect(() => {
     let mounted = true;
     async function load() {
       if (!user) return;
-      const selected = await getSelectedImportedProject(user.id);
       const token = getGitHubToken(user);
-      if (!selected || !token) {
+      if (!token) {
         setOwner(null);
         setCollaborators([]);
         setContributors([]);
+        setSummary({ commits: 0, added: 0, removed: 0 });
         return;
       }
 
       try {
-        const [repo, collabs, contribs] = await Promise.all([
-          getRepo(token, selected.owner, selected.repo),
-          listCollaborators(token, selected.owner, selected.repo),
-          listContributors(token, selected.owner, selected.repo),
-        ]);
+        const projects = await fetchImportedProjects(user.id);
+        if (!projects.length) {
+          setOwner(null);
+          setCollaborators([]);
+          setContributors([]);
+          setSummary({ commits: 0, added: 0, removed: 0 });
+          return;
+        }
 
-        const contribMap = new Map<string, number>();
-        for (const m of contribs ?? []) {
-          contribMap.set(m.login, m.contributions ?? 0);
+        const memberMap = new Map<string, Member & { role: "owner" | "collaborator" | "contributor" }>();
+        let totalCommits = 0;
+        let totalAdded = 0;
+        let totalRemoved = 0;
+
+        const roleRank: Record<string, number> = { contributor: 1, collaborator: 2, owner: 3 };
+        const upgradeMember = (entry: Member & { role: "owner" | "collaborator" | "contributor" }) => {
+          const current = memberMap.get(entry.login);
+          if (!current || roleRank[entry.role] >= roleRank[current.role]) {
+            memberMap.set(entry.login, entry);
+          }
+        };
+
+        for (const project of projects) {
+          const [repo, collabs, contribs, commits] = await Promise.all([
+            getRepo(token, project.owner, project.repo),
+            listCollaborators(token, project.owner, project.repo),
+            listContributors(token, project.owner, project.repo),
+            listAllCommits(token, project.owner, project.repo, { per_page: 100 }, 500),
+          ]);
+
+          const contribMap = new Map<string, number>();
+          for (const m of contribs ?? []) {
+            contribMap.set(m.login, m.contributions ?? 0);
+          }
+
+          totalCommits += commits.length;
+
+          const commitDetailBatch = await Promise.all(
+            commits.map(async (commit: any) => {
+              try {
+                const detail = await getCommit(token, project.owner, project.repo, commit.sha);
+                return { commit, detail };
+              } catch {
+                return { commit, detail: null };
+              }
+            })
+          );
+
+          for (const item of commitDetailBatch) {
+            const authorLogin = item.commit.author?.login ?? item.commit.commit?.author?.name ?? project.owner;
+            const additions = item.detail?.stats?.additions ?? 0;
+            const deletions = item.detail?.stats?.deletions ?? 0;
+            totalAdded += additions;
+            totalRemoved += deletions;
+            const current = memberMap.get(authorLogin);
+            memberMap.set(authorLogin, {
+              login: authorLogin,
+              name: item.commit.author?.login ?? item.commit.commit?.author?.name ?? authorLogin,
+              avatar: item.commit.author?.avatar_url ?? current?.avatar ?? repo.owner?.avatar_url ?? "",
+              contrib: (current?.contrib ?? 0) + 1,
+              add: (current?.add ?? 0) + additions,
+              del: (current?.del ?? 0) + deletions,
+              role: current?.role ?? "contributor",
+            });
+          }
+
+          const ownerLogin = repo.owner?.login ?? project.owner;
+          upgradeMember({
+            login: ownerLogin,
+            name: repo.owner?.login ?? project.owner,
+            avatar: repo.owner?.avatar_url ?? "",
+            contrib: contribMap.get(ownerLogin) ?? 0,
+            add: 0,
+            del: 0,
+            role: "owner",
+          });
+
+          for (const m of collabs ?? []) {
+            upgradeMember({
+              login: m.login,
+              name: m.login,
+              avatar: m.avatar_url ?? "",
+              contrib: contribMap.get(m.login) ?? 0,
+              add: 0,
+              del: 0,
+              role: "collaborator",
+            });
+          }
         }
 
         if (!mounted) return;
-        setOwner({
-          login: repo.owner?.login ?? selected.owner,
-          name: repo.owner?.login ?? selected.owner,
-          avatar: repo.owner?.avatar_url ?? "",
-          contrib: contribMap.get(repo.owner?.login ?? selected.owner) ?? 0,
-          add: 0,
-          del: 0,
-        });
-
-        setCollaborators(
-          collabs.map((m: any) => ({
-            login: m.login,
-            name: m.login,
-            avatar: m.avatar_url ?? "",
-            contrib: contribMap.get(m.login) ?? 0,
-            add: 0,
-            del: 0,
-          }))
-        );
-
-        setContributors(
-          contribs.map((m: any) => ({
-            login: m.login,
-            name: m.login,
-            avatar: m.avatar_url ?? "",
-            contrib: m.contributions ?? 0,
-            add: 0,
-            del: 0,
-          }))
-        );
+        const all = Array.from(memberMap.values()).sort((a, b) => b.contrib - a.contrib || b.add - a.add);
+        setSummary({ commits: totalCommits, added: totalAdded, removed: totalRemoved });
+        setOwner(all.find((m) => m.role === "owner") ?? null);
+        setCollaborators(all.filter((m) => m.role === "collaborator"));
+        setContributors(all.filter((m) => m.role === "contributor"));
       } catch (err) {
         console.error("Failed to load team", err);
       }
@@ -132,7 +189,13 @@ function Team() {
 
   return (
     <>
-      <PageHeader title="Team" description="Members fetched from GitHub, grouped by access level." />
+      <PageHeader title="Team" description="Aggregated leaderboard across all imported projects." />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Commits" value={summary.commits.toString()} icon={GitCommit} accent="primary" />
+        <StatCard label="Lines Added" value={`+${summary.added.toLocaleString()}`} icon={Plus} accent="success" />
+        <StatCard label="Lines Removed" value={`-${summary.removed.toLocaleString()}`} icon={Minus} accent="danger" />
+        <StatCard label="Contributors" value={(contributors.length + collaborators.length + (owner ? 1 : 0)).toString()} icon={Users2} accent="cyan" />
+      </div>
       {!user ? (
         <div className="glass rounded-xl p-6 mb-6">Sign in and import a project first.</div>
       ) : !owner ? (

@@ -31,11 +31,14 @@ returns boolean language sql stable security definer set search_path = public as
   select exists(select 1 from public.org_members where org_id = _org and user_id = _user);
 $$;
 
+drop policy if exists "members read org" on public.organizations;
 create policy "members read org" on public.organizations
   for select using (public.is_org_member(id, auth.uid()) or owner_id = auth.uid());
+drop policy if exists "owner manages org" on public.organizations;
 create policy "owner manages org" on public.organizations
   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
+drop policy if exists "self read membership" on public.org_members;
 create policy "self read membership" on public.org_members
   for select using (user_id = auth.uid() or public.is_org_member(org_id, auth.uid()));
 
@@ -50,6 +53,7 @@ create table if not exists public.departments (
   created_at timestamptz default now()
 );
 alter table public.departments enable row level security;
+drop policy if exists "org members read depts" on public.departments;
 create policy "org members read depts" on public.departments
   for select using (public.is_org_member(org_id, auth.uid()));
 
@@ -81,8 +85,22 @@ create table if not exists public.projects (
   created_at timestamptz default now()
 );
 alter table public.projects enable row level security;
+drop policy if exists "org members read projects" on public.projects;
 create policy "org members read projects" on public.projects
   for select using (public.is_org_member(org_id, auth.uid()));
+
+-- Allow users to create personal imported projects and read their own projects.
+drop policy if exists "users insert projects" on public.projects;
+create policy "users insert projects" on public.projects
+  for insert with check (created_by = auth.uid());
+
+drop policy if exists "users read own projects" on public.projects;
+create policy "users read own projects" on public.projects
+  for select using (created_by = auth.uid() or public.is_org_member(org_id, auth.uid()));
+
+drop policy if exists "users manage own projects" on public.projects;
+create policy "users manage own projects" on public.projects
+  for all using (created_by = auth.uid()) with check (created_by = auth.uid());
 
 -- ----------------- Project team members (from GitHub) -----------------
 create table if not exists public.project_team_members (
@@ -242,8 +260,10 @@ create table if not exists public.notifications (
   created_at timestamptz default now()
 );
 alter table public.notifications enable row level security;
+drop policy if exists "self read notifications" on public.notifications;
 create policy "self read notifications" on public.notifications
   for select using (user_id = auth.uid());
+drop policy if exists "self update notifications" on public.notifications;
 create policy "self update notifications" on public.notifications
   for update using (user_id = auth.uid());
 
@@ -276,6 +296,7 @@ alter table public.webhook_events enable row level security;
 
 -- Generic project-scoped read policy template — re-create for each table that needs it.
 -- Example for commits:
+drop policy if exists "org members read commits" on public.commits;
 create policy "org members read commits" on public.commits for select
   using (exists (
     select 1 from public.projects p

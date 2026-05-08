@@ -28,6 +28,12 @@ create table if not exists public.org_members (
 );
 alter table public.org_members enable row level security;
 
+-- Migration: add missing columns to existing org_members table
+alter table public.org_members add column if not exists status text check (status in ('accepted','pending','declined')) default 'accepted';
+alter table public.org_members add column if not exists invited_by uuid references auth.users(id) on delete set null;
+alter table public.org_members add column if not exists invited_at timestamptz default now();
+alter table public.org_members add column if not exists joined_at timestamptz;
+
 -- Helper: is user a member of org (accepted status only)?
 create or replace function public.is_org_member(_org uuid, _user uuid)
 returns boolean language sql stable security definer set search_path = public as $$
@@ -83,6 +89,9 @@ alter table public.departments enable row level security;
 drop policy if exists "org members read depts" on public.departments;
 create policy "org members read depts" on public.departments
   for select using (public.is_org_member(org_id, auth.uid()));
+drop policy if exists "org owner manage depts" on public.departments;
+create policy "org owner manage depts" on public.departments
+  for all using (exists(select 1 from public.organizations where id = org_id and owner_id = auth.uid())) with check (exists(select 1 from public.organizations where id = org_id and owner_id = auth.uid()));
 
 create table if not exists public.dept_members (
   id uuid primary key default gen_random_uuid(),

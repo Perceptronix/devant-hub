@@ -76,16 +76,46 @@ function Settings() {
     (async () => {
       try {
         const supabase = getSupabase();
-        const { data, error } = await supabase
+        // Query 1: owned orgs
+        const { data: ownedOrgs, error: ownError } = await supabase
           .from("organizations")
           .select("id, name, slug, github_org_login, owner_id, created_at")
-          .or(`owner_id.eq.${user.id},id.in(select org_id from org_members where user_id.eq.${user.id} and status.eq.accepted)`);
+          .eq("owner_id", user.id);
 
-        if (error) throw error;
+        // Query 2: member orgs
+        const { data: memberOrgIds, error: memberError } = await supabase
+          .from("org_members")
+          .select("org_id")
+          .eq("user_id", user.id)
+          .eq("status", "accepted");
+
+        if (ownError || memberError) throw ownError || memberError;
         if (!mounted) return;
-        setOrgs((data as Organization[]) || []);
-        if ((data as Organization[])?.length > 0) {
-          setSelectedOrg((data as Organization[])[0]);
+
+        // Get org IDs from member query
+        const memberOrgIdSet = new Set((memberOrgIds || []).map((m: any) => m.org_id));
+        
+        // Fetch member orgs if any
+        let memberOrgs: Organization[] = [];
+        if (memberOrgIdSet.size > 0) {
+          const { data: mOrgs, error: fetchError } = await supabase
+            .from("organizations")
+            .select("id, name, slug, github_org_login, owner_id, created_at")
+            .in("id", Array.from(memberOrgIdSet));
+          
+          if (fetchError) throw fetchError;
+          memberOrgs = (mOrgs || []) as Organization[];
+        }
+
+        // Combine and deduplicate
+        const allOrgs = [...(ownedOrgs || []), ...memberOrgs].reduce((acc, org) => {
+          if (!acc.find((o: any) => o.id === org.id)) acc.push(org);
+          return acc;
+        }, [] as Organization[]);
+
+        setOrgs(allOrgs);
+        if (allOrgs.length > 0) {
+          setSelectedOrg(allOrgs[0]);
         }
       } catch (err) {
         console.error("Failed to load organizations:", err);
@@ -200,22 +230,14 @@ function Settings() {
     setCreating(true);
     try {
       const supabase = getSupabase();
-      // First try to find the user by email via auth
-      const { data: { users }, error: searchError } = await supabase.auth.admin.listUsers();
-      const targetUser = users?.find((u) => u.email?.toLowerCase() === inviteEmail.toLowerCase());
-
-      if (!targetUser) {
-        toast.error("User not found. They must sign up first.");
-        setCreating(false);
-        return;
-      }
-
+      // Create pending org member invite - users accept via Notifications after GitHub login
       const { error } = await supabase.from("org_members").insert({
         org_id: selectedOrg.id,
-        user_id: targetUser.id,
+        user_id: null, // Will be linked when user accepts in Notifications
         role: "member",
         status: "pending",
         invited_by: user?.id,
+        invited_at: new Date().toISOString(),
       });
 
       if (error) {
@@ -225,7 +247,7 @@ function Settings() {
           throw error;
         }
       } else {
-        toast.success(`Invite sent to ${inviteEmail}`);
+        toast.success(`Invite sent to ${inviteEmail}. They can accept it in Notifications after signing in.`);
         setInviteEmail("");
         setOpenInviteMember(false);
         // Refresh members

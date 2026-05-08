@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { createOrgInvite } from "@/lib/org-invites";
+import emailjs from "@emailjs/browser";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — DevANT" }] }),
@@ -258,8 +260,16 @@ function Settings() {
     }
 
     setCreating(true);
+    let inviteResult:
+      | {
+          id: string;
+          orgName: string;
+          inviteToken: string;
+          invitedEmail: string;
+        }
+      | null = null;
     try {
-      await (
+      inviteResult = (await (
         createOrgInvite as unknown as (options: {
           data: {
             orgId: string;
@@ -279,7 +289,49 @@ function Settings() {
           inviterEmail: (user?.email ?? "").toLowerCase(),
           baseUrl: window.location.origin,
         },
-      });
+      })) as {
+        id: string;
+        orgName: string;
+        inviteToken: string;
+        invitedEmail: string;
+      };
+
+      const emailjsPublicKey =
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY ?? import.meta.env.VITE_EMAILJS_USER_ID;
+      const emailjsServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const emailjsTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+
+      if (!emailjsPublicKey || !emailjsServiceId || !emailjsTemplateId) {
+        throw new Error(
+          "EmailJS client env missing: set VITE_EMAILJS_PUBLIC_KEY, VITE_EMAILJS_SERVICE_ID, and VITE_EMAILJS_TEMPLATE_ID.",
+        );
+      }
+
+      const inviteUrl = `${window.location.origin}/invites/${inviteResult.inviteToken}`;
+      const senderMeta = (user?.user_metadata as Record<string, string> | undefined) ?? {};
+
+      await emailjs.send(
+        emailjsServiceId,
+        emailjsTemplateId,
+        {
+          project_name: import.meta.env.VITE_DEVANT_PROJECT_NAME ?? "DevANT",
+          sender_avatar: senderMeta.avatar_url ?? "",
+          project_avatar: "",
+          sender_username: meta.full_name || user?.email || "DevANT",
+          sender_email: (user?.email ?? "").toLowerCase(),
+          repo_link: inviteUrl,
+          organization_name: inviteResult.orgName,
+          repo_name: inviteResult.orgName,
+          profile_link: senderMeta.profile_url ?? senderMeta.profile_link ?? "",
+          expiry_days: import.meta.env.VITE_DEVANT_INVITE_EXPIRY_DAYS ?? "7",
+          invitation_link: inviteUrl,
+          user_email: emailToInvite,
+          recipient_username: emailToInvite,
+          company_address: import.meta.env.VITE_DEVANT_COMPANY_ADDRESS ?? "",
+          company_city: import.meta.env.VITE_DEVANT_COMPANY_CITY ?? "",
+        },
+        { publicKey: emailjsPublicKey },
+      );
 
       toast.success(
         `Invite sent to ${emailToInvite}. They will receive an email with an Accept invitation button.`,
@@ -297,8 +349,18 @@ function Settings() {
       emitSync();
     } catch (err) {
       console.error("Failed to invite member:", err);
+      if (inviteResult) {
+        try {
+          const supabase = getSupabase();
+          await supabase.from("org_members").delete().eq("id", inviteResult.id);
+        } catch (rollbackError) {
+          console.error("Failed to rollback pending invite:", rollbackError);
+        }
+      }
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to send invite. Check that RESEND_API_KEY is configured.";
+        err instanceof Error
+          ? err.message
+          : "Failed to send invite. Check that EmailJS client env vars are configured.";
       toast.error(errorMessage);
     } finally {
       setCreating(false);
@@ -403,6 +465,7 @@ function Settings() {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Create Organization</DialogTitle>
+                    <DialogDescription>Create a new organization workspace.</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-3">
                     <div>
@@ -459,6 +522,9 @@ function Settings() {
                         <DialogContent>
                           <DialogHeader>
                             <DialogTitle>Create Department</DialogTitle>
+                            <DialogDescription>
+                              Add a department or domain for the selected organization.
+                            </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-3">
                             <div>
@@ -549,6 +615,9 @@ function Settings() {
                         <DialogContent>
                           <DialogHeader>
                             <DialogTitle>Invite Member</DialogTitle>
+                            <DialogDescription>
+                              Send an email invite to add someone to this organization.
+                            </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-3">
                             <div>

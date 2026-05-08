@@ -275,6 +275,7 @@ function Settings() {
           invitedEmail: emailToInvite,
           inviterId: user?.id ?? "",
           inviterName: meta.full_name || user?.email || "DevANT",
+          inviterEmail: (user?.email ?? "").toLowerCase(),
           baseUrl: window.location.origin,
         },
       });

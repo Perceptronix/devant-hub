@@ -7,6 +7,7 @@ const InviteInput = z.object({
   invitedEmail: z.string().email(),
   inviterId: z.string().uuid(),
   inviterName: z.string().min(1).max(200),
+  inviterEmail: z.string().email(),
   baseUrl: z.string().url(),
 });
 
@@ -83,6 +84,7 @@ async function sendInviteEmail(input: {
   orgName: string;
   inviterName: string;
   inviteUrl: string;
+  inviterEmail: string;
 }) {
   // Use EmailJS REST API to send templated emails from the server.
   // Requires these env vars: EMAILJS_USER_ID, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID
@@ -101,6 +103,7 @@ async function sendInviteEmail(input: {
     sender_avatar: "",
     project_avatar: "",
     sender_username: input.inviterName,
+    sender_email: input.inviterEmail,
     repo_link: input.inviteUrl,
     organization_name: input.orgName,
     repo_name: input.orgName,
@@ -183,6 +186,7 @@ export const createOrgInvite = createServerFn({ method: "POST" })
         to: data.invitedEmail,
         orgName: org.name,
         inviterName: data.inviterName,
+        inviterEmail: data.inviterEmail,
         inviteUrl: `${data.baseUrl}/invites/${invite.invite_token}`,
       });
       console.log(`[createOrgInvite] Invite successfully sent to ${data.invitedEmail}`);

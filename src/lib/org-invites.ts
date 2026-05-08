@@ -15,12 +15,19 @@ const InviteLookupInput = z.object({
 });
 
 function getAdminSupabase() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl =
+    process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE ?? process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
-      "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured for invite email delivery.",
+      [
+        "Supabase admin env missing for invite email delivery.",
+        `SUPABASE_URL=${supabaseUrl ? "set" : "missing"}`,
+        `SUPABASE_SERVICE_ROLE_KEY=${serviceRoleKey ? "set" : "missing"}`,
+        "Also accepted: VITE_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE, SUPABASE_SECRET_KEY.",
+      ].join(" "),
     );
   }
 

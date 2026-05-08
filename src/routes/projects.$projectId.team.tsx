@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Users2, GitFork, Link2 } from "lucide-react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
+import { getSupabase } from "@/integrations/supabase/client";
 import { useProject } from "@/lib/use-project";
 import { getCommit, getRepo, listAllCommits, listCollaborators, listContributors } from "@/lib/github/client";
 import { useSyncListener } from "@/lib/sync";
@@ -19,6 +20,7 @@ function Team() {
   const { project } = useProject(projectId);
   const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
+  const [linkedLogins, setLinkedLogins] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
@@ -31,6 +33,14 @@ function Team() {
       if (!token) return;
       setLoading(true);
       try {
+        const supabase = getSupabase();
+        const { data: linkedMembers } = await supabase
+          .from("project_team_members")
+          .select("github_login, linked_user_id")
+          .eq("project_id", project.id)
+          .not("linked_user_id", "is", null);
+        const linkedSet = new Set((linkedMembers ?? []).map((row: any) => String(row.github_login).toLowerCase()));
+
         const [repo, collabs, contribs, commits] = await Promise.all([
           getRepo(token, project.owner, project.repo),
           listCollaborators(token, project.owner, project.repo).catch(() => []),
@@ -75,6 +85,7 @@ function Team() {
         }
 
         if (!mounted) return;
+        setLinkedLogins(linkedSet);
         setMembers(Array.from(byLogin.values()).sort((a, b) => b.contrib - a.contrib));
       } finally { if (mounted) setLoading(false); }
     })();
@@ -91,11 +102,11 @@ function Team() {
       {loading && members.length === 0 ? <div className="glass rounded-xl p-6 text-sm text-muted-foreground">Loading team…</div> : null}
 
       <Section title="Owner" icon={Crown} accent="warning">
-        {owner ? <MemberCard m={owner} linked /> : <Empty />}
+        {owner ? <MemberCard m={owner} linked={linkedLogins.has(owner.login.toLowerCase())} /> : <Empty />}
       </Section>
       <Section title="Collaborators" icon={Users2} accent="primary">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {collaborators.length === 0 ? <Empty /> : collaborators.map((m) => <MemberCard key={m.login} m={m} linked />)}
+          {collaborators.length === 0 ? <Empty /> : collaborators.map((m) => <MemberCard key={m.login} m={m} linked={linkedLogins.has(m.login.toLowerCase())} />)}
         </div>
       </Section>
       <Section title="Contributors" icon={GitFork} accent="cyan">

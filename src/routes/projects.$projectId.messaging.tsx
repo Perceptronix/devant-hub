@@ -62,38 +62,91 @@ function Messaging() {
       setLoading(true);
       try {
         const supabase = getSupabase();
-        const [{ data: memberRows, error: memberError }, { data: messageRows, error: messageError }] =
-          await Promise.all([
-            supabase
-              .from("project_team_members")
-              .select("linked_user_id, github_login, name, avatar_url")
-              .eq("project_id", project.id)
-              .order("name", { ascending: true }),
-            supabase
-              .from("messages")
-              .select("id, sender_id, content, created_at, message_type")
-              .eq("project_id", project.id)
-              .order("created_at", { ascending: true }),
-          ]);
+        let projectOrgId = project.org_id;
+        if (!projectOrgId && project.owner) {
+          const ownerKey = project.owner.toLowerCase();
+          const { data: matchingOrgs, error: matchingOrgsError } = await supabase
+            .from("organizations")
+            .select("id")
+            .or(`github_org_login.ilike.${ownerKey},slug.ilike.${ownerKey}`)
+            .limit(1);
+          if (!matchingOrgsError && matchingOrgs?.length > 0) {
+            projectOrgId = matchingOrgs[0].id;
+          }
+        }
+
+        const projectTeamPromise = supabase
+          .from("project_team_members")
+          .select("linked_user_id, github_login, name, avatar_url")
+          .eq("project_id", project.id)
+          .order("name", { ascending: true });
+
+        const orgMembersPromise = projectOrgId
+          ? supabase
+              .from("org_members")
+              .select("user_id, github_login, display_name, avatar_url")
+              .eq("org_id", projectOrgId)
+              .eq("status", "accepted")
+          : Promise.resolve({ data: [], error: null } as any);
+
+        const [
+          { data: memberRows, error: memberError },
+          { data: orgMemberRows, error: orgMemberError },
+          { data: messageRows, error: messageError },
+        ] = await Promise.all([
+          projectTeamPromise,
+          orgMembersPromise,
+          supabase
+            .from("messages")
+            .select("id, sender_id, content, created_at, message_type")
+            .eq("project_id", project.id)
+            .order("created_at", { ascending: true }),
+        ]);
 
         if (!mounted) return;
         if (memberError) {
           console.error("Failed to load project team members:", memberError);
         }
+        if (orgMemberError) {
+          console.error("Failed to load org members for messaging:", orgMemberError);
+        }
         if (messageError) {
           console.error("Failed to load messages:", messageError);
         }
 
-        const members = (memberRows ?? []).map((row: any) => ({
-          linked_user_id: row.linked_user_id,
-          github_login: row.github_login,
-          name: row.name,
-          avatar_url: row.avatar_url,
-        })) as TeamMember[];
+        const memberMap = new Map<string, TeamMember>();
+        for (const row of (memberRows || []) as any[]) {
+          const key = String(
+            row.linked_user_id ?? row.github_login ?? row.name ?? "",
+          ).toLowerCase();
+          if (!memberMap.has(key)) {
+            memberMap.set(key, {
+              linked_user_id: row.linked_user_id,
+              github_login: row.github_login,
+              name: row.name,
+              avatar_url: row.avatar_url,
+            });
+          }
+        }
+        for (const row of (orgMemberRows || []) as any[]) {
+          const key = String(
+            row.user_id ?? row.github_login ?? row.display_name ?? "",
+          ).toLowerCase();
+          if (!memberMap.has(key)) {
+            memberMap.set(key, {
+              linked_user_id: row.user_id,
+              github_login: row.github_login || row.display_name || "",
+              name: row.display_name || row.github_login || null,
+              avatar_url: row.avatar_url || null,
+            });
+          }
+        }
+
+        const members = Array.from(memberMap.values());
         const memberByUserId = new Map(
           members
             .filter((member) => Boolean(member.linked_user_id))
-            .map((member) => [member.linked_user_id as string, member] as const)
+            .map((member) => [member.linked_user_id as string, member] as const),
         );
 
         const loadedMessages = (messageRows ?? []).map((row: any) => {
@@ -108,7 +161,9 @@ function Messaging() {
               member?.github_login ||
               (row.sender_id ? row.sender_id.slice(0, 8) : "Unknown"),
             sender_avatar:
-              (isCurrentUser ? (user?.user_metadata as any)?.avatar_url : null) || member?.avatar_url || undefined,
+              (isCurrentUser ? (user?.user_metadata as any)?.avatar_url : null) ||
+              member?.avatar_url ||
+              undefined,
             content: row.content,
             created_at: row.created_at,
             message_type: row.message_type === "system" ? "system" : "text",
@@ -162,13 +217,14 @@ function Messaging() {
       const memberByUserId = new Map(
         teamMembers
           .filter((member) => Boolean(member.linked_user_id))
-          .map((member) => [member.linked_user_id as string, member] as const)
+          .map((member) => [member.linked_user_id as string, member] as const),
       );
       const member = memberByUserId.get(user.id);
       const newMsg: Message = {
         id: data.id,
         sender_id: data.sender_id,
-        sender_name: (user.user_metadata as any)?.user_name || user.email || member?.github_login || "You",
+        sender_name:
+          (user.user_metadata as any)?.user_name || user.email || member?.github_login || "You",
         sender_avatar: (user.user_metadata as any)?.avatar_url || member?.avatar_url || undefined,
         content: data.content,
         created_at: data.created_at,
@@ -216,7 +272,9 @@ function Messaging() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     <span className="text-xs font-semibold">{msg.sender_name}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatTime(msg.created_at)}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatTime(msg.created_at)}
+                    </span>
                   </div>
                   <p className="text-sm break-words mt-0.5 text-foreground/90">{msg.content}</p>
                 </div>
@@ -248,14 +306,12 @@ function Messaging() {
               size="icon"
               className="shrink-0"
             >
-              {sending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Send className="size-4" />
-              )}
+              {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
             </Button>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">Press Enter to send, Shift+Enter for new line</p>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Press Enter to send, Shift+Enter for new line
+          </p>
         </div>
       </div>
     </>

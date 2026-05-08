@@ -60,7 +60,8 @@ function Tasks() {
   const { project } = useProject(projectId);
   const { user } = useAuth();
   const currentUserMeta = (user?.user_metadata as Record<string, string> | undefined) ?? {};
-  const currentUserGithubLogin = currentUserMeta.user_name || currentUserMeta.preferred_username || user?.email || "";
+  const currentUserGithubLogin =
+    currentUserMeta.user_name || currentUserMeta.preferred_username || user?.email || "";
   const currentUserAvatar = currentUserMeta.avatar_url || undefined;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -90,11 +91,13 @@ function Tasks() {
       setLoading(true);
       try {
         const supabase = getSupabase();
-        
+
         // Fetch tasks
         const { data: taskRows, error: taskError } = await supabase
           .from("tasks")
-          .select("id, title, description, status, priority, assigned_to, created_by, due_date, created_at")
+          .select(
+            "id, title, description, status, priority, assigned_to, created_by, due_date, created_at",
+          )
           .eq("project_id", project.id)
           .order("created_at", { ascending: false });
 
@@ -103,19 +106,31 @@ function Tasks() {
           console.error("Failed to load tasks:", taskError);
         }
 
-        // If project has org_id, fetch org members; otherwise use project team members
+        // If project has org_id, fetch org members; otherwise infer the org from repo owner and fall back to project team members
         let assignableMembers: TeamMember[] = [];
-        if (project.org_id) {
+        let projectOrgId = project.org_id;
+        if (!projectOrgId && project.owner) {
+          const ownerKey = project.owner.toLowerCase();
+          const { data: matchingOrgs, error: matchingOrgsError } = await supabase
+            .from("organizations")
+            .select("id")
+            .or(`github_org_login.ilike.${ownerKey},slug.ilike.${ownerKey}`)
+            .limit(1);
+          if (!matchingOrgsError && matchingOrgs?.length > 0) {
+            projectOrgId = matchingOrgs[0].id;
+          }
+        }
+
+        if (projectOrgId) {
           const { data: orgMembers, error: orgError } = await supabase
             .from("org_members")
             .select("user_id, display_name, github_login, avatar_url")
-            .eq("org_id", project.org_id)
+            .eq("org_id", projectOrgId)
             .eq("status", "accepted");
 
           if (orgError) {
             console.error("Failed to load org members:", orgError);
           } else {
-            // Map org member user_ids to team member format
             assignableMembers = (orgMembers || []).map((row: any) => ({
               linked_user_id: row.user_id,
               github_login:
@@ -133,7 +148,6 @@ function Tasks() {
             })) as TeamMember[];
           }
         } else {
-          // Fallback to project team members for non-org projects
           const { data: memberRows, error: memberError } = await supabase
             .from("project_team_members")
             .select("linked_user_id, github_login, name, avatar_url")
@@ -158,7 +172,7 @@ function Tasks() {
         const memberByUserId = new Map(
           assignableMembers
             .filter((member) => Boolean(member.linked_user_id))
-            .map((member) => [member.linked_user_id as string, member] as const)
+            .map((member) => [member.linked_user_id as string, member] as const),
         );
 
         const loadedTasks = (taskRows || []).map((row: any) => {
@@ -221,7 +235,9 @@ function Tasks() {
           priority: newTask.priority,
           due_date: newTask.due_date || null,
         })
-        .select("id, title, description, status, priority, assigned_to, created_by, due_date, created_at")
+        .select(
+          "id, title, description, status, priority, assigned_to, created_by, due_date, created_at",
+        )
         .single();
 
       if (error) throw error;
@@ -229,7 +245,7 @@ function Tasks() {
       const memberByUserId = new Map(
         teamMembers
           .filter((member) => Boolean(member.linked_user_id))
-          .map((member) => [member.linked_user_id as string, member] as const)
+          .map((member) => [member.linked_user_id as string, member] as const),
       );
       const assignedMember = data.assigned_to ? memberByUserId.get(data.assigned_to) : null;
       const currentUserLabel = (user.user_metadata as any)?.user_name || user.email || "Unknown";
@@ -367,11 +383,15 @@ function Tasks() {
                           <Avatar className="size-5 shrink-0">
                             <AvatarImage src={member.avatar_url ?? undefined} />
                             <AvatarFallback className="text-[10px]">
-                              {(member.name || member.github_login || "?").slice(0, 1).toUpperCase()}
+                              {(member.name || member.github_login || "?")
+                                .slice(0, 1)
+                                .toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <div className="truncate text-sm">{member.name || member.github_login}</div>
+                            <div className="truncate text-sm">
+                              {member.name || member.github_login}
+                            </div>
                             <div className="truncate text-[10px] text-muted-foreground">
                               @{member.github_login}
                             </div>
@@ -422,7 +442,8 @@ function Tasks() {
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Assigning to a linked team member makes the task visible to the rest of the project team.
+            Assigning to a linked team member makes the task visible to the rest of the project
+            team.
           </p>
         </div>
       </div>
@@ -460,9 +481,7 @@ function Tasks() {
                       className="bg-surface rounded-lg p-3 border border-border hover:border-border-strong transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <h4 className="text-xs font-semibold flex-1 line-clamp-2">
-                          {task.title}
-                        </h4>
+                        <h4 className="text-xs font-semibold flex-1 line-clamp-2">{task.title}</h4>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <button className="text-muted-foreground hover:text-danger shrink-0">
@@ -489,7 +508,10 @@ function Tasks() {
                       </div>
 
                       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                        <Badge variant="outline" className={`text-[9px] ${priorityColor[task.priority]}`}>
+                        <Badge
+                          variant="outline"
+                          className={`text-[9px] ${priorityColor[task.priority]}`}
+                        >
                           {task.priority}
                         </Badge>
                         {task.assigned_to_name && (

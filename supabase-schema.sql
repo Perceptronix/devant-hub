@@ -68,7 +68,15 @@ returns boolean language sql stable security definer set search_path = public as
     from public.projects p
     where p.id = _project and (
       p.created_by = _user or
-      (p.org_id is not null and public.is_org_member(p.org_id, _user))
+      (p.org_id is not null and public.is_org_member(p.org_id, _user)) or
+      (p.org_id is null and exists(
+        select 1
+        from public.organizations o
+        join public.org_members om on om.org_id = o.id
+        where lower(o.github_org_login) = lower(p.github_repo_owner)
+          and om.user_id = _user
+          and om.status = 'accepted'
+      ))
     )
   );
 $$;

@@ -23,14 +23,30 @@ create table if not exists public.org_members (
   status text check (status in ('accepted','pending','declined')) default 'accepted',
   invited_by uuid references auth.users(id) on delete set null,
   invited_email text,
+  invite_token text,
   invited_at timestamptz default now(),
   joined_at timestamptz,
-  unique(org_id, user_id)
+  unique(org_id, user_id),
+  unique(org_id, invited_email),
+  unique(invite_token)
 );
 alter table public.org_members enable row level security;
 
 -- Migration: add invited_email column if missing
 alter table public.org_members add column if not exists invited_email text;
+alter table public.org_members add column if not exists invite_token text;
+
+-- Helper: is user currently invited to an org by email?
+create or replace function public.is_pending_org_invite(_org uuid, _email text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists(
+    select 1
+    from public.org_members
+    where org_id = _org
+      and status = 'pending'
+      and lower(invited_email) = lower(_email)
+  );
+$$;
 
 -- Helper: is user a member of org (accepted status only)?
 create or replace function public.is_org_member(_org uuid, _user uuid)
@@ -53,7 +69,11 @@ $$;
 
 drop policy if exists "members read org" on public.organizations;
 create policy "members read org" on public.organizations
-  for select using (public.is_org_member(id, auth.uid()) or owner_id = auth.uid());
+  for select using (
+    public.is_org_member(id, auth.uid())
+    or owner_id = auth.uid()
+    or public.is_pending_org_invite(id, coalesce(auth.jwt() ->> 'email', ''))
+  );
 drop policy if exists "owner manages org" on public.organizations;
 create policy "owner manages org" on public.organizations
   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
@@ -63,7 +83,7 @@ create policy "owner creates org" on public.organizations
 
 drop policy if exists "self read membership" on public.org_members;
 create policy "self read membership" on public.org_members
-  for select using (user_id = auth.uid());
+  for select using (user_id = auth.uid() or public.is_pending_org_invite(org_id, coalesce(auth.jwt() ->> 'email', '')));
 
 drop policy if exists "owner read all members" on public.org_members;
 create policy "owner read all members" on public.org_members
@@ -75,7 +95,13 @@ create policy "owner manage members" on public.org_members
 
 drop policy if exists "user accept own invite" on public.org_members;
 create policy "user accept own invite" on public.org_members
-  for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+  for update using (
+    user_id = auth.uid()
+    or public.is_pending_org_invite(org_id, coalesce(auth.jwt() ->> 'email', ''))
+  ) with check (
+    user_id = auth.uid()
+    or public.is_pending_org_invite(org_id, coalesce(auth.jwt() ->> 'email', ''))
+  );
 
 -- ----------------- Departments -----------------
 create table if not exists public.departments (

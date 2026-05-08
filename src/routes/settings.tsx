@@ -14,9 +14,24 @@ import { emitSync } from "@/lib/sync";
 import { Github, Sun, Moon, Plus, Trash2, Loader2, Copy, Mail, Check, X } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { createOrgInvite } from "@/lib/org-invites";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — DevANT" }] }),
@@ -95,8 +110,10 @@ function Settings() {
         if (!mounted) return;
 
         // Get org IDs from member query
-        const memberOrgIdSet = new Set((memberOrgIds || []).map((m: any) => m.org_id));
-        
+        const memberOrgIdSet = new Set(
+          (memberOrgIds || []).map((m: { org_id: string }) => m.org_id),
+        );
+
         // Fetch member orgs if any
         let memberOrgs: Organization[] = [];
         if (memberOrgIdSet.size > 0) {
@@ -104,14 +121,14 @@ function Settings() {
             .from("organizations")
             .select("id, name, slug, github_org_login, owner_id, created_at")
             .in("id", Array.from(memberOrgIdSet));
-          
+
           if (fetchError) throw fetchError;
           memberOrgs = (mOrgs || []) as Organization[];
         }
 
         // Combine and deduplicate
         const allOrgs = [...(ownedOrgs || []), ...memberOrgs].reduce((acc, org) => {
-          if (!acc.find((o: any) => o.id === org.id)) acc.push(org);
+          if (!acc.find((existingOrg) => existingOrg.id === org.id)) acc.push(org);
           return acc;
         }, [] as Organization[]);
 
@@ -123,7 +140,9 @@ function Settings() {
         console.error("Failed to load organizations:", err);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [user]);
 
   // Load departments and members when org selected
@@ -155,7 +174,9 @@ function Settings() {
         console.error("Failed to load org data:", err);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [selectedOrg]);
 
   const handleCreateOrg = async () => {
@@ -238,41 +259,34 @@ function Settings() {
 
     setCreating(true);
     try {
-      const supabase = getSupabase();
+      await (
+        createOrgInvite as unknown as (options: {
+          data: {
+            orgId: string;
+            invitedEmail: string;
+            inviterId: string;
+            inviterName: string;
+            baseUrl: string;
+          };
+        }) => Promise<unknown>
+      )({
+        data: {
+          orgId: selectedOrg.id,
+          invitedEmail: emailToInvite,
+          inviterId: user?.id ?? "",
+          inviterName: meta.full_name || user?.email || "DevANT",
+          baseUrl: window.location.origin,
+        },
+      });
 
-      // Create pending org member invite with email
-      const { data: inviteData, error: insertError } = await supabase
-        .from("org_members")
-        .insert({
-          org_id: selectedOrg.id,
-          user_id: null, // Will be linked when user accepts
-          invited_email: emailToInvite,
-          role: "member",
-          status: "pending",
-          invited_by: user?.id,
-          invited_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        if (insertError.code === "23505") {
-          toast.error("This email is already invited or a member");
-        } else {
-          throw insertError;
-        }
-        return;
-      }
-
-      // TODO: Send email to invitee with accept/decline links
-      // For now, show success message
       toast.success(
-        `Invite sent to ${emailToInvite}! They'll see it in Notifications after signing in with GitHub.`
+        `Invite sent to ${emailToInvite}. They will receive an email with an Accept invitation button.`,
       );
       setInviteEmail("");
       setOpenInviteMember(false);
 
       // Reload members to show the new invite
+      const supabase = getSupabase();
       const { data: membersData } = await supabase
         .from("org_members")
         .select("id, user_id, role, status, invited_at, invited_email, joined_at")
@@ -281,7 +295,9 @@ function Settings() {
       emitSync();
     } catch (err) {
       console.error("Failed to invite member:", err);
-      toast.error("Failed to send invite");
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to send invite. Check that RESEND_API_KEY is configured.";
+      toast.error(errorMessage);
     } finally {
       setCreating(false);
     }
@@ -330,14 +346,23 @@ function Settings() {
         <TabsContent value="profile">
           <Card>
             <div className="flex items-center gap-4 mb-6">
-              <Avatar className="size-16"><AvatarImage src={meta.avatar_url} /><AvatarFallback>{(user?.email || "DA").slice(0,2).toUpperCase()}</AvatarFallback></Avatar>
+              <Avatar className="size-16">
+                <AvatarImage src={meta.avatar_url} />
+                <AvatarFallback>{(user?.email || "DA").slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
               <div>
                 <div className="font-semibold">{meta.user_name || user?.email || "Guest"}</div>
-                <div className="text-xs text-muted-foreground">{user?.email || "Sign in to manage profile"}</div>
+                <div className="text-xs text-muted-foreground">
+                  {user?.email || "Sign in to manage profile"}
+                </div>
               </div>
             </div>
-            <Field label="Display name"><Input defaultValue={meta.user_name || ""} /></Field>
-            <Field label="Email"><Input defaultValue={user?.email || ""} /></Field>
+            <Field label="Display name">
+              <Input defaultValue={meta.user_name || ""} />
+            </Field>
+            <Field label="Email">
+              <Input defaultValue={user?.email || ""} />
+            </Field>
           </Card>
         </TabsContent>
 
@@ -391,7 +416,9 @@ function Settings() {
                       <Input
                         placeholder="e.g. acme-corp"
                         value={newOrgSlug}
-                        onChange={(e) => setNewOrgSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                        onChange={(e) =>
+                          setNewOrgSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"))
+                        }
                       />
                     </div>
                     <Button
@@ -464,10 +491,17 @@ function Settings() {
                   ) : (
                     <div className="space-y-2">
                       {departments.map((dept) => (
-                        <div key={dept.id} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
+                        <div
+                          key={dept.id}
+                          className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border"
+                        >
                           <div>
                             <div className="font-medium text-sm">{dept.name}</div>
-                            {dept.description && <div className="text-xs text-muted-foreground">{dept.description}</div>}
+                            {dept.description && (
+                              <div className="text-xs text-muted-foreground">
+                                {dept.description}
+                              </div>
+                            )}
                           </div>
                           {isOrgOwner && (
                             <AlertDialog>
@@ -478,7 +512,9 @@ function Settings() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogTitle>Delete Department?</AlertDialogTitle>
-                                <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                                <AlertDialogDescription>
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
                                 <div className="flex gap-3 justify-end">
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
@@ -546,7 +582,10 @@ function Settings() {
                   ) : (
                     <div className="space-y-2">
                       {members.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border"
+                        >
                           <div className="flex-1">
                             <div className="font-medium text-sm">
                               {member.status === "pending" && member.invited_email
@@ -559,8 +598,8 @@ function Settings() {
                                   member.status === "accepted"
                                     ? "default"
                                     : member.status === "pending"
-                                    ? "secondary"
-                                    : "destructive"
+                                      ? "secondary"
+                                      : "destructive"
                                 }
                               >
                                 {member.status}
@@ -576,7 +615,9 @@ function Settings() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogTitle>Remove Member?</AlertDialogTitle>
-                                <AlertDialogDescription>They will lose access to this organization.</AlertDialogDescription>
+                                <AlertDialogDescription>
+                                  They will lose access to this organization.
+                                </AlertDialogDescription>
                                 <div className="flex gap-3 justify-end">
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
@@ -633,7 +674,9 @@ function Settings() {
               <Github className="size-6" />
               <div className="flex-1">
                 <div className="font-medium">GitHub</div>
-                <div className="text-xs text-muted-foreground">Scopes: repo, read:org, read:user</div>
+                <div className="text-xs text-muted-foreground">
+                  Scopes: repo, read:org, read:user
+                </div>
               </div>
               <Button variant="outline">{user ? "Connected" : "Connect"}</Button>
             </div>
@@ -642,12 +685,28 @@ function Settings() {
 
         <TabsContent value="notifications">
           <Card>
-            {["New commit", "PR opened", "PR merged", "Deploy success", "Deploy failure", "Issue opened"].map((n) => (
-              <div key={n} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            {[
+              "New commit",
+              "PR opened",
+              "PR merged",
+              "Deploy success",
+              "Deploy failure",
+              "Issue opened",
+            ].map((n) => (
+              <div
+                key={n}
+                className="flex items-center justify-between py-3 border-b border-border last:border-0"
+              >
                 <Label>{n}</Label>
                 <div className="flex gap-4">
-                  <div className="flex items-center gap-2 text-xs"><span>Email</span><Switch /></div>
-                  <div className="flex items-center gap-2 text-xs"><span>In-app</span><Switch defaultChecked /></div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span>Email</span>
+                    <Switch />
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span>In-app</span>
+                    <Switch defaultChecked />
+                  </div>
                 </div>
               </div>
             ))}

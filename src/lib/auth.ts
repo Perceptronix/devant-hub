@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { getSupabase } from "@/integrations/supabase/client";
 
+type SessionWithProviderToken = Session & { provider_token?: string };
+
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -14,8 +16,9 @@ export function useAuth() {
       // When OAuth flow completes Supabase emits provider_token on the session.
       // Persist it to localStorage so client code can use it for API calls.
       try {
-        if (typeof window !== "undefined" && s && (s as unknown as Record<string, any>).provider_token) {
-          window.localStorage.setItem("oauth_provider_token", (s as unknown as Record<string, any>).provider_token);
+        const authSession = s as SessionWithProviderToken | null;
+        if (typeof window !== "undefined" && authSession && authSession.provider_token) {
+          window.localStorage.setItem("oauth_provider_token", authSession.provider_token);
         }
       } catch (err) {
         // ignore
@@ -26,9 +29,9 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       // getSession may include provider_token immediately after redirect
       try {
-        const ses = data.session as unknown as Record<string, any> | null;
-        if (typeof window !== "undefined" && ses && ses.provider_token) {
-          window.localStorage.setItem("oauth_provider_token", ses.provider_token);
+        const sessionData = data.session as SessionWithProviderToken | null;
+        if (typeof window !== "undefined" && sessionData && sessionData.provider_token) {
+          window.localStorage.setItem("oauth_provider_token", sessionData.provider_token);
         }
       } catch (err) {
         // ignore
@@ -43,9 +46,8 @@ export function useAuth() {
   return { session, user: session?.user ?? null, loading };
 }
 
-export async function signInWithGitHub() {
+export async function signInWithGitHub(redirectTo = `${window.location.origin}/`) {
   const supabase = getSupabase();
-  const redirectTo = `${window.location.origin}/`;
   return supabase.auth.signInWithOAuth({
     provider: "github",
     options: {
@@ -75,8 +77,8 @@ export function getGitHubToken(user: User | null): string | null {
   }
 
   return (
-    (user.user_metadata as Record<string, unknown>)?.provider_token as string | undefined ??
-    (user.app_metadata as Record<string, unknown>)?.provider_token as string | undefined ??
+    ((user.user_metadata as Record<string, unknown>)?.provider_token as string | undefined) ??
+    ((user.app_metadata as Record<string, unknown>)?.provider_token as string | undefined) ??
     null
   );
 }

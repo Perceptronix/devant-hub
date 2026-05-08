@@ -84,42 +84,56 @@ async function sendInviteEmail(input: {
   inviterName: string;
   inviteUrl: string;
 }) {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  if (!resendApiKey) {
-    throw new Error("RESEND_API_KEY is required to send organization invite emails.");
+  // Use EmailJS REST API to send templated emails from the server.
+  // Requires these env vars: EMAILJS_USER_ID, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID
+  const emailjsUser = process.env.EMAILJS_USER_ID;
+  const emailjsService = process.env.EMAILJS_SERVICE_ID;
+  const emailjsTemplate = process.env.EMAILJS_TEMPLATE_ID;
+
+  if (!emailjsUser || !emailjsService || !emailjsTemplate) {
+    throw new Error(
+      "EmailJS env missing: please set EMAILJS_USER_ID, EMAILJS_SERVICE_ID, and EMAILJS_TEMPLATE_ID",
+    );
   }
 
-  const from = getInviteFromAddress();
-  const { subject, html, text } = buildInviteEmail(
-    input.orgName,
-    input.inviterName,
-    input.inviteUrl,
-  );
+  const templateParams = {
+    project_name: process.env.DEVANT_PROJECT_NAME ?? "DevANT",
+    sender_avatar: "",
+    project_avatar: "",
+    sender_username: input.inviterName,
+    repo_link: input.inviteUrl,
+    organization_name: input.orgName,
+    repo_name: input.orgName,
+    profile_link: "",
+    expiry_days: String(process.env.DEVANT_INVITE_EXPIRY_DAYS ?? "7"),
+    invitation_link: input.inviteUrl,
+    user_email: input.to,
+    recipient_username: input.to,
+  };
 
-  const response = await fetch("https://api.resend.com/emails", {
+  const body = {
+    service_id: emailjsService,
+    template_id: emailjsTemplate,
+    user_id: emailjsUser,
+    template_params: templateParams,
+  } as const;
+
+  const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${resendApiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      from,
-      to: [input.to],
-      subject,
-      html,
-      text,
-    }),
+    body: JSON.stringify(body),
   });
 
-  if (!response.ok) {
-    const details = await response.text().catch(() => "");
-    const errorMsg = `Failed to send invite email: ${response.status} ${details}`.trim();
-    console.error("[sendInviteEmail] Error:", errorMsg);
-    console.error("[sendInviteEmail] Request payload:", { from, to: input.to });
-    throw new Error(errorMsg);
+  if (!res.ok) {
+    const details = await res.text().catch(() => "");
+    const msg = `EmailJS send failed: ${res.status} ${details}`;
+    console.error("[sendInviteEmail]", msg, body);
+    throw new Error(msg);
   }
 
-  console.log(`[sendInviteEmail] Successfully sent invite to ${input.to}`);
+  console.log(`[sendInviteEmail] EmailJS invite queued for ${input.to}`);
 }
 
 export const createOrgInvite = createServerFn({ method: "POST" })

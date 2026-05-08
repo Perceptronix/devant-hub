@@ -9,6 +9,7 @@ export interface ImportedProject {
   defaultBranch?: string;
   private?: boolean;
   github_repo_id?: number;
+  org_id?: string;
 }
 
 function selectedKey(userId: string) {
@@ -24,7 +25,7 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
     const { data, error } = await supabase
       .from("projects")
       .select(
-        "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id"
+        "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id, org_id"
       )
       .eq("created_by", userId)
       .order("created_at", { ascending: false });
@@ -41,6 +42,7 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
       defaultBranch: r.default_branch,
       private: r.is_private,
       github_repo_id: r.github_repo_id,
+      org_id: r.org_id,
     }));
   } catch (err) {
     console.error("fetchImportedProjects err", err);

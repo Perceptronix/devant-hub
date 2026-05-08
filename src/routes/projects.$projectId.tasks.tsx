@@ -73,7 +73,7 @@ function Tasks() {
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
 
-  // Load tasks
+  // Load tasks and org members
   useEffect(() => {
     if (!project) {
       setTasks([]);
@@ -87,46 +87,71 @@ function Tasks() {
       setLoading(true);
       try {
         const supabase = getSupabase();
-        const [{ data: memberRows, error: memberError }, { data: taskRows, error: taskError }] =
-          await Promise.all([
-            supabase
-              .from("project_team_members")
-              .select("linked_user_id, github_login, name, avatar_url")
-              .eq("project_id", project.id)
-              .order("name", { ascending: true }),
-            supabase
-              .from("tasks")
-              .select("id, title, description, status, priority, assigned_to, created_by, due_date, created_at")
-              .eq("project_id", project.id)
-              .order("created_at", { ascending: false }),
-          ]);
+        
+        // Fetch tasks
+        const { data: taskRows, error: taskError } = await supabase
+          .from("tasks")
+          .select("id, title, description, status, priority, assigned_to, created_by, due_date, created_at")
+          .eq("project_id", project.id)
+          .order("created_at", { ascending: false });
 
         if (!mounted) return;
-        if (memberError) {
-          console.error("Failed to load project team members:", memberError);
-        }
         if (taskError) {
           console.error("Failed to load tasks:", taskError);
         }
 
-        const members = (memberRows ?? []).map((row: any) => ({
-          linked_user_id: row.linked_user_id,
-          github_login: row.github_login,
-          name: row.name,
-          avatar_url: row.avatar_url,
-        })) as TeamMember[];
-        const memberByUserId = new Map(
-          members
-            .filter((member) => Boolean(member.linked_user_id))
-            .map((member) => [member.linked_user_id as string, member] as const)
-        );
+        // If project has org_id, fetch org members; otherwise use project team members
+        let assignableMembers: TeamMember[] = [];
+        if (project.org_id) {
+          const { data: orgMembers, error: orgError } = await supabase
+            .from("org_members")
+            .select("id, user_id")
+            .eq("org_id", project.org_id)
+            .eq("status", "accepted");
+
+          if (orgError) {
+            console.error("Failed to load org members:", orgError);
+          } else {
+            // Map org member user_ids to team member format
+            assignableMembers = (orgMembers || []).map((row: any) => ({
+              linked_user_id: row.user_id,
+              github_login: row.user_id.slice(0, 8),
+              name: null,
+              avatar_url: null,
+            })) as TeamMember[];
+          }
+        } else {
+          // Fallback to project team members for non-org projects
+          const { data: memberRows, error: memberError } = await supabase
+            .from("project_team_members")
+            .select("linked_user_id, github_login, name, avatar_url")
+            .eq("project_id", project.id)
+            .not("linked_user_id", "is", null)
+            .order("name", { ascending: true });
+
+          if (memberError) {
+            console.error("Failed to load project team members:", memberError);
+          } else {
+            assignableMembers = (memberRows || []).map((row: any) => ({
+              linked_user_id: row.linked_user_id,
+              github_login: row.github_login,
+              name: row.name,
+              avatar_url: row.avatar_url,
+            })) as TeamMember[];
+          }
+        }
 
         const currentUserLabel = (user?.user_metadata as any)?.user_name || user?.email || "Unknown";
         const currentUserAvatar = (user?.user_metadata as any)?.avatar_url || undefined;
 
-        const loadedTasks = (taskRows ?? []).map((row: any) => {
+        const memberByUserId = new Map(
+          assignableMembers
+            .filter((member) => Boolean(member.linked_user_id))
+            .map((member) => [member.linked_user_id as string, member] as const)
+        );
+
+        const loadedTasks = (taskRows || []).map((row: any) => {
           const assignedMember = row.assigned_to ? memberByUserId.get(row.assigned_to) : null;
-          const createdByMember = row.created_by ? memberByUserId.get(row.created_by) : null;
           const createdByCurrentUser = row.created_by === user?.id;
 
           return {
@@ -139,19 +164,14 @@ function Tasks() {
             assigned_to_name: assignedMember?.name || assignedMember?.github_login || undefined,
             assigned_to_avatar: assignedMember?.avatar_url || undefined,
             created_by_id: row.created_by,
-            created_by_name:
-              (createdByCurrentUser ? currentUserLabel : null) ||
-              createdByMember?.name ||
-              createdByMember?.github_login ||
-              "Unknown",
-            created_by_avatar:
-              (createdByCurrentUser ? currentUserAvatar : null) || createdByMember?.avatar_url || undefined,
+            created_by_name: createdByCurrentUser ? currentUserLabel : "Unknown",
+            created_by_avatar: createdByCurrentUser ? currentUserAvatar : undefined,
             due_date: row.due_date || undefined,
             created_at: row.created_at,
           } as Task;
         });
 
-        setTeamMembers(members);
+        setTeamMembers(assignableMembers);
         setTasks(loadedTasks);
       } finally {
         if (mounted) setLoading(false);

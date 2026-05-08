@@ -20,15 +20,18 @@ create table if not exists public.org_members (
   org_id uuid references public.organizations(id) on delete cascade,
   user_id uuid references auth.users(id) on delete cascade,
   role text check (role in ('owner','admin','member')) default 'member',
-  joined_at timestamptz default now(),
+  status text check (status in ('accepted','pending','declined')) default 'accepted',
+  invited_by uuid references auth.users(id) on delete set null,
+  invited_at timestamptz default now(),
+  joined_at timestamptz,
   unique(org_id, user_id)
 );
 alter table public.org_members enable row level security;
 
--- Helper: is user a member of org?
+-- Helper: is user a member of org (accepted status only)?
 create or replace function public.is_org_member(_org uuid, _user uuid)
 returns boolean language sql stable security definer set search_path = public as $$
-  select exists(select 1 from public.org_members where org_id = _org and user_id = _user);
+  select exists(select 1 from public.org_members where org_id = _org and user_id = _user and status = 'accepted');
 $$;
 
 -- Helper: is user a member of the project's organization, or the project creator?
@@ -50,10 +53,21 @@ create policy "members read org" on public.organizations
 drop policy if exists "owner manages org" on public.organizations;
 create policy "owner manages org" on public.organizations
   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+drop policy if exists "owner creates org" on public.organizations;
+create policy "owner creates org" on public.organizations
+  for insert with check (owner_id = auth.uid());
 
 drop policy if exists "self read membership" on public.org_members;
 create policy "self read membership" on public.org_members
-  for select using (user_id = auth.uid() or public.is_org_member(org_id, auth.uid()));
+  for select using (user_id = auth.uid() or exists(select 1 from public.organizations where id = org_id and owner_id = auth.uid()) or exists(select 1 from public.org_members om where om.org_id = org_members.org_id and om.user_id = auth.uid() and om.status = 'accepted'));
+
+drop policy if exists "owner manage members" on public.org_members;
+create policy "owner manage members" on public.org_members
+  for all using (exists(select 1 from public.organizations where id = org_id and owner_id = auth.uid())) with check (exists(select 1 from public.organizations where id = org_id and owner_id = auth.uid()));
+
+drop policy if exists "user accept own invite" on public.org_members;
+create policy "user accept own invite" on public.org_members
+  for update using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- ----------------- Departments -----------------
 create table if not exists public.departments (

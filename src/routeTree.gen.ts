@@ -10,45 +10,33 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
-import { Route as TeamRouteImport } from './routes/team'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as PullsRouteImport } from './routes/pulls'
-import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as IssuesRouteImport } from './routes/issues'
-import { Route as DeploymentsRouteImport } from './routes/deployments'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CommitsIndexRouteImport } from './routes/commits.index'
-import { Route as CommitsShaRouteImport } from './routes/commits.$sha'
+import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
+import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
+import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects.$projectId.index'
+import { Route as ProjectsProjectIdTeamRouteImport } from './routes/projects.$projectId.team'
+import { Route as ProjectsProjectIdSettingsRouteImport } from './routes/projects.$projectId.settings'
+import { Route as ProjectsProjectIdPullsRouteImport } from './routes/projects.$projectId.pulls'
+import { Route as ProjectsProjectIdIssuesRouteImport } from './routes/projects.$projectId.issues'
+import { Route as ProjectsProjectIdDeploymentsRouteImport } from './routes/projects.$projectId.deployments'
 import { Route as ApiPublicGithubWebhookRouteImport } from './routes/api/public/github-webhook'
+import { Route as ProjectsProjectIdCommitsIndexRouteImport } from './routes/projects.$projectId.commits.index'
+import { Route as ProjectsProjectIdCommitsShaRouteImport } from './routes/projects.$projectId.commits.$sha'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
   path: '/terms-of-service',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TeamRoute = TeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PullsRoute = PullsRouteImport.update({
-  id: '/pulls',
-  path: '/pulls',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectsRoute = ProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -71,16 +59,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IssuesRoute = IssuesRouteImport.update({
-  id: '/issues',
-  path: '/issues',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeploymentsRoute = DeploymentsRouteImport.update({
-  id: '/deployments',
-  path: '/deployments',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -91,150 +69,205 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CommitsIndexRoute = CommitsIndexRouteImport.update({
-  id: '/commits/',
-  path: '/commits/',
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CommitsShaRoute = CommitsShaRouteImport.update({
-  id: '/commits/$sha',
-  path: '/commits/$sha',
+const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
+  id: '/projects/$projectId',
+  path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
+const ProjectsProjectIdTeamRoute = ProjectsProjectIdTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
+const ProjectsProjectIdSettingsRoute =
+  ProjectsProjectIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
+const ProjectsProjectIdPullsRoute = ProjectsProjectIdPullsRouteImport.update({
+  id: '/pulls',
+  path: '/pulls',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
+const ProjectsProjectIdIssuesRoute = ProjectsProjectIdIssuesRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
+const ProjectsProjectIdDeploymentsRoute =
+  ProjectsProjectIdDeploymentsRouteImport.update({
+    id: '/deployments',
+    path: '/deployments',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
 const ApiPublicGithubWebhookRoute = ApiPublicGithubWebhookRouteImport.update({
   id: '/api/public/github-webhook',
   path: '/api/public/github-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsProjectIdCommitsIndexRoute =
+  ProjectsProjectIdCommitsIndexRouteImport.update({
+    id: '/commits/',
+    path: '/commits/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
+const ProjectsProjectIdCommitsShaRoute =
+  ProjectsProjectIdCommitsShaRouteImport.update({
+    id: '/commits/$sha',
+    path: '/commits/$sha',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/deployments': typeof DeploymentsRoute
-  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/projects': typeof ProjectsRoute
-  '/pulls': typeof PullsRoute
   '/settings': typeof SettingsRoute
-  '/team': typeof TeamRoute
   '/terms-of-service': typeof TermsOfServiceRoute
-  '/commits/$sha': typeof CommitsShaRoute
-  '/commits/': typeof CommitsIndexRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
+  '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsRoute
+  '/projects/$projectId/issues': typeof ProjectsProjectIdIssuesRoute
+  '/projects/$projectId/pulls': typeof ProjectsProjectIdPullsRoute
+  '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsRoute
+  '/projects/$projectId/team': typeof ProjectsProjectIdTeamRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/projects/$projectId/commits/$sha': typeof ProjectsProjectIdCommitsShaRoute
+  '/projects/$projectId/commits/': typeof ProjectsProjectIdCommitsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/deployments': typeof DeploymentsRoute
-  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/projects': typeof ProjectsRoute
-  '/pulls': typeof PullsRoute
   '/settings': typeof SettingsRoute
-  '/team': typeof TeamRoute
   '/terms-of-service': typeof TermsOfServiceRoute
-  '/commits/$sha': typeof CommitsShaRoute
-  '/commits': typeof CommitsIndexRoute
+  '/projects': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
+  '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsRoute
+  '/projects/$projectId/issues': typeof ProjectsProjectIdIssuesRoute
+  '/projects/$projectId/pulls': typeof ProjectsProjectIdPullsRoute
+  '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsRoute
+  '/projects/$projectId/team': typeof ProjectsProjectIdTeamRoute
+  '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
+  '/projects/$projectId/commits/$sha': typeof ProjectsProjectIdCommitsShaRoute
+  '/projects/$projectId/commits': typeof ProjectsProjectIdCommitsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/deployments': typeof DeploymentsRoute
-  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/projects': typeof ProjectsRoute
-  '/pulls': typeof PullsRoute
   '/settings': typeof SettingsRoute
-  '/team': typeof TeamRoute
   '/terms-of-service': typeof TermsOfServiceRoute
-  '/commits/$sha': typeof CommitsShaRoute
-  '/commits/': typeof CommitsIndexRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
+  '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsRoute
+  '/projects/$projectId/issues': typeof ProjectsProjectIdIssuesRoute
+  '/projects/$projectId/pulls': typeof ProjectsProjectIdPullsRoute
+  '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsRoute
+  '/projects/$projectId/team': typeof ProjectsProjectIdTeamRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/projects/$projectId/commits/$sha': typeof ProjectsProjectIdCommitsShaRoute
+  '/projects/$projectId/commits/': typeof ProjectsProjectIdCommitsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/analytics'
-    | '/deployments'
-    | '/issues'
     | '/login'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
-    | '/projects'
-    | '/pulls'
     | '/settings'
-    | '/team'
     | '/terms-of-service'
-    | '/commits/$sha'
-    | '/commits/'
+    | '/projects/$projectId'
+    | '/projects/'
     | '/api/public/github-webhook'
+    | '/projects/$projectId/deployments'
+    | '/projects/$projectId/issues'
+    | '/projects/$projectId/pulls'
+    | '/projects/$projectId/settings'
+    | '/projects/$projectId/team'
+    | '/projects/$projectId/'
+    | '/projects/$projectId/commits/$sha'
+    | '/projects/$projectId/commits/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/analytics'
-    | '/deployments'
-    | '/issues'
     | '/login'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
-    | '/projects'
-    | '/pulls'
     | '/settings'
-    | '/team'
     | '/terms-of-service'
-    | '/commits/$sha'
-    | '/commits'
+    | '/projects'
     | '/api/public/github-webhook'
+    | '/projects/$projectId/deployments'
+    | '/projects/$projectId/issues'
+    | '/projects/$projectId/pulls'
+    | '/projects/$projectId/settings'
+    | '/projects/$projectId/team'
+    | '/projects/$projectId'
+    | '/projects/$projectId/commits/$sha'
+    | '/projects/$projectId/commits'
   id:
     | '__root__'
     | '/'
     | '/analytics'
-    | '/deployments'
-    | '/issues'
     | '/login'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
-    | '/projects'
-    | '/pulls'
     | '/settings'
-    | '/team'
     | '/terms-of-service'
-    | '/commits/$sha'
-    | '/commits/'
+    | '/projects/$projectId'
+    | '/projects/'
     | '/api/public/github-webhook'
+    | '/projects/$projectId/deployments'
+    | '/projects/$projectId/issues'
+    | '/projects/$projectId/pulls'
+    | '/projects/$projectId/settings'
+    | '/projects/$projectId/team'
+    | '/projects/$projectId/'
+    | '/projects/$projectId/commits/$sha'
+    | '/projects/$projectId/commits/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
-  DeploymentsRoute: typeof DeploymentsRoute
-  IssuesRoute: typeof IssuesRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
-  ProjectsRoute: typeof ProjectsRoute
-  PullsRoute: typeof PullsRoute
   SettingsRoute: typeof SettingsRoute
-  TeamRoute: typeof TeamRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
-  CommitsShaRoute: typeof CommitsShaRoute
-  CommitsIndexRoute: typeof CommitsIndexRoute
+  ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiPublicGithubWebhookRoute: typeof ApiPublicGithubWebhookRoute
 }
 
@@ -247,32 +280,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsOfServiceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/team': {
-      id: '/team'
-      path: '/team'
-      fullPath: '/team'
-      preLoaderRoute: typeof TeamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pulls': {
-      id: '/pulls'
-      path: '/pulls'
-      fullPath: '/pulls'
-      preLoaderRoute: typeof PullsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects': {
-      id: '/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -303,20 +315,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/issues': {
-      id: '/issues'
-      path: '/issues'
-      fullPath: '/issues'
-      preLoaderRoute: typeof IssuesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/deployments': {
-      id: '/deployments'
-      path: '/deployments'
-      fullPath: '/deployments'
-      preLoaderRoute: typeof DeploymentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/analytics': {
       id: '/analytics'
       path: '/analytics'
@@ -331,19 +329,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/commits/': {
-      id: '/commits/'
-      path: '/commits'
-      fullPath: '/commits/'
-      preLoaderRoute: typeof CommitsIndexRouteImport
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/commits/$sha': {
-      id: '/commits/$sha'
-      path: '/commits/$sha'
-      fullPath: '/commits/$sha'
-      preLoaderRoute: typeof CommitsShaRouteImport
+    '/projects/$projectId': {
+      id: '/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId/': {
+      id: '/projects/$projectId/'
+      path: '/'
+      fullPath: '/projects/$projectId/'
+      preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/team': {
+      id: '/projects/$projectId/team'
+      path: '/team'
+      fullPath: '/projects/$projectId/team'
+      preLoaderRoute: typeof ProjectsProjectIdTeamRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings': {
+      id: '/projects/$projectId/settings'
+      path: '/settings'
+      fullPath: '/projects/$projectId/settings'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/pulls': {
+      id: '/projects/$projectId/pulls'
+      path: '/pulls'
+      fullPath: '/projects/$projectId/pulls'
+      preLoaderRoute: typeof ProjectsProjectIdPullsRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/issues': {
+      id: '/projects/$projectId/issues'
+      path: '/issues'
+      fullPath: '/projects/$projectId/issues'
+      preLoaderRoute: typeof ProjectsProjectIdIssuesRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/deployments': {
+      id: '/projects/$projectId/deployments'
+      path: '/deployments'
+      fullPath: '/projects/$projectId/deployments'
+      preLoaderRoute: typeof ProjectsProjectIdDeploymentsRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
     }
     '/api/public/github-webhook': {
       id: '/api/public/github-webhook'
@@ -352,37 +392,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGithubWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/commits/': {
+      id: '/projects/$projectId/commits/'
+      path: '/commits'
+      fullPath: '/projects/$projectId/commits/'
+      preLoaderRoute: typeof ProjectsProjectIdCommitsIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/commits/$sha': {
+      id: '/projects/$projectId/commits/$sha'
+      path: '/commits/$sha'
+      fullPath: '/projects/$projectId/commits/$sha'
+      preLoaderRoute: typeof ProjectsProjectIdCommitsShaRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
   }
 }
+
+interface ProjectsProjectIdRouteChildren {
+  ProjectsProjectIdDeploymentsRoute: typeof ProjectsProjectIdDeploymentsRoute
+  ProjectsProjectIdIssuesRoute: typeof ProjectsProjectIdIssuesRoute
+  ProjectsProjectIdPullsRoute: typeof ProjectsProjectIdPullsRoute
+  ProjectsProjectIdSettingsRoute: typeof ProjectsProjectIdSettingsRoute
+  ProjectsProjectIdTeamRoute: typeof ProjectsProjectIdTeamRoute
+  ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
+  ProjectsProjectIdCommitsShaRoute: typeof ProjectsProjectIdCommitsShaRoute
+  ProjectsProjectIdCommitsIndexRoute: typeof ProjectsProjectIdCommitsIndexRoute
+}
+
+const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
+  ProjectsProjectIdDeploymentsRoute: ProjectsProjectIdDeploymentsRoute,
+  ProjectsProjectIdIssuesRoute: ProjectsProjectIdIssuesRoute,
+  ProjectsProjectIdPullsRoute: ProjectsProjectIdPullsRoute,
+  ProjectsProjectIdSettingsRoute: ProjectsProjectIdSettingsRoute,
+  ProjectsProjectIdTeamRoute: ProjectsProjectIdTeamRoute,
+  ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
+  ProjectsProjectIdCommitsShaRoute: ProjectsProjectIdCommitsShaRoute,
+  ProjectsProjectIdCommitsIndexRoute: ProjectsProjectIdCommitsIndexRoute,
+}
+
+const ProjectsProjectIdRouteWithChildren =
+  ProjectsProjectIdRoute._addFileChildren(ProjectsProjectIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
-  DeploymentsRoute: DeploymentsRoute,
-  IssuesRoute: IssuesRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
-  ProjectsRoute: ProjectsRoute,
-  PullsRoute: PullsRoute,
   SettingsRoute: SettingsRoute,
-  TeamRoute: TeamRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
-  CommitsShaRoute: CommitsShaRoute,
-  CommitsIndexRoute: CommitsIndexRoute,
+  ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
+  ProjectsIndexRoute: ProjectsIndexRoute,
   ApiPublicGithubWebhookRoute: ApiPublicGithubWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

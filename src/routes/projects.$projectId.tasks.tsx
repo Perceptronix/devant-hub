@@ -105,7 +105,7 @@ function Tasks() {
         if (project.org_id) {
           const { data: orgMembers, error: orgError } = await supabase
             .from("org_members")
-            .select("id, user_id")
+            .select("user_id, display_name, github_login, avatar_url")
             .eq("org_id", project.org_id)
             .eq("status", "accepted");
 
@@ -115,9 +115,9 @@ function Tasks() {
             // Map org member user_ids to team member format
             assignableMembers = (orgMembers || []).map((row: any) => ({
               linked_user_id: row.user_id,
-              github_login: row.user_id.slice(0, 8),
-              name: null,
-              avatar_url: null,
+              github_login: row.github_login || row.display_name || row.user_id.slice(0, 8),
+              name: row.display_name || row.github_login || null,
+              avatar_url: row.avatar_url || null,
             })) as TeamMember[];
           }
         } else {

@@ -23,6 +23,9 @@ create table if not exists public.org_members (
   status text check (status in ('accepted','pending','declined')) default 'accepted',
   invited_by uuid references auth.users(id) on delete set null,
   invited_email text,
+  display_name text,
+  github_login text,
+  avatar_url text,
   invite_token text,
   invited_at timestamptz default now(),
   joined_at timestamptz,
@@ -34,6 +37,9 @@ alter table public.org_members enable row level security;
 
 -- Migration: add invited_email column if missing
 alter table public.org_members add column if not exists invited_email text;
+alter table public.org_members add column if not exists display_name text;
+alter table public.org_members add column if not exists github_login text;
+alter table public.org_members add column if not exists avatar_url text;
 alter table public.org_members add column if not exists invite_token text;
 
 -- Helper: is user currently invited to an org by email?

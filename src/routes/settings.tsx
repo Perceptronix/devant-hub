@@ -55,6 +55,9 @@ interface OrgMember {
   user_id: string | null;
   email?: string;
   invited_email?: string;
+  display_name?: string | null;
+  github_login?: string | null;
+  avatar_url?: string | null;
   role: "owner" | "admin" | "member";
   status: "accepted" | "pending" | "declined";
   invited_at: string;
@@ -165,7 +168,7 @@ function Settings() {
             .eq("org_id", selectedOrg.id),
           supabase
             .from("org_members")
-            .select("id, user_id, role, status, invited_at, invited_email, joined_at")
+            .select("id, user_id, role, status, invited_at, invited_email, joined_at, display_name, github_login, avatar_url")
             .eq("org_id", selectedOrg.id),
         ]);
 
@@ -343,7 +346,7 @@ function Settings() {
       const supabase = getSupabase();
       const { data: membersData } = await supabase
         .from("org_members")
-        .select("id, user_id, role, status, invited_at, invited_email, joined_at")
+        .select("id, user_id, role, status, invited_at, invited_email, joined_at, display_name, github_login, avatar_url")
         .eq("org_id", selectedOrg.id);
       setMembers((membersData || []) as OrgMember[]);
       emitSync();
@@ -659,10 +662,13 @@ function Settings() {
                         >
                           <div className="flex-1">
                             <div className="font-medium text-sm">
-                              {member.status === "pending" && member.invited_email
-                                ? member.invited_email
-                                : member.role}
+                              {member.status === "pending"
+                                ? member.invited_email || member.display_name || member.github_login || member.role
+                                : member.display_name || member.github_login || member.invited_email || member.role}
                             </div>
+                            {member.github_login && member.status === "accepted" && (
+                              <div className="text-xs text-muted-foreground">@{member.github_login}</div>
+                            )}
                             <div className="flex items-center gap-2 mt-1">
                               <Badge
                                 variant={
@@ -675,6 +681,9 @@ function Settings() {
                               >
                                 {member.status}
                               </Badge>
+                              {member.user_id && member.status === "accepted" && (
+                                <Badge variant="outline">Linked</Badge>
+                              )}
                             </div>
                           </div>
                           {isOrgOwner && member.role !== "owner" && (

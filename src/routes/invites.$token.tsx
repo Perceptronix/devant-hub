@@ -29,6 +29,9 @@ function InvitePage() {
   const [loadingInvite, setLoadingInvite] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const email = user?.email?.toLowerCase() ?? "";
+  const userMeta = (user?.user_metadata as Record<string, string> | undefined) ?? {};
+  const githubLogin = userMeta.user_name || userMeta.preferred_username || user?.email || "";
+  const displayName = userMeta.full_name || userMeta.user_name || user?.email || invite?.invitedEmail || "";
 
   useEffect(() => {
     let mounted = true;
@@ -65,6 +68,9 @@ function InvitePage() {
           status: "accepted",
           user_id: user.id,
           joined_at: new Date().toISOString(),
+          display_name: displayName,
+          github_login: githubLogin,
+          avatar_url: userMeta.avatar_url ?? null,
         })
         .eq("id", invite.id);
 

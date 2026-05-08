@@ -22,18 +22,18 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
   if (!userId) return [];
   try {
     const supabase = getSupabase();
-    const [{ data, error }, { data: orgs, error: orgError }] = await Promise.all([
+    const [projectsResult, orgsResult] = await Promise.all([
       supabase
-      .from("projects")
-      .select(
-        "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id, org_id"
-      )
-      .eq("created_by", userId)
-      .order("created_at", { ascending: false });
-      supabase
-        .from("organizations")
-        .select("id, github_org_login")
+        .from("projects")
+        .select(
+          "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id, org_id",
+        )
+        .eq("created_by", userId)
+        .order("created_at", { ascending: false }),
+      supabase.from("organizations").select("id, github_org_login"),
     ]);
+    const { data, error } = projectsResult;
+    const { data: orgs, error: orgError } = orgsResult;
     if (error || orgError) {
       console.error("fetchImportedProjects", error);
       if (orgError) console.error("fetchImportedProjects orgs", orgError);

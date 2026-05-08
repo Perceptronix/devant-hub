@@ -27,7 +27,7 @@ import {
   setSelectedImportedProject,
 } from "@/lib/imported-projects";
 
-export const Route = createFileRoute("/projects")({
+export const Route = createFileRoute("/projects/")({
   head: () => ({ meta: [{ title: "Projects — DevANT" }] }),
   component: Projects,
 });

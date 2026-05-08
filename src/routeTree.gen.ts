@@ -10,20 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
-import { Route as TeamRouteImport } from './routes/team'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as PullsRouteImport } from './routes/pulls'
-import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as IssuesRouteImport } from './routes/issues'
-import { Route as DeploymentsRouteImport } from './routes/deployments'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CommitsIndexRouteImport } from './routes/commits.index'
-import { Route as CommitsShaRouteImport } from './routes/commits.$sha'
+import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ApiPublicGithubWebhookRouteImport } from './routes/api/public/github-webhook'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
@@ -31,24 +25,9 @@ const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   path: '/terms-of-service',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TeamRoute = TeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PullsRoute = PullsRouteImport.update({
-  id: '/pulls',
-  path: '/pulls',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectsRoute = ProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -71,16 +50,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IssuesRoute = IssuesRouteImport.update({
-  id: '/issues',
-  path: '/issues',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeploymentsRoute = DeploymentsRouteImport.update({
-  id: '/deployments',
-  path: '/deployments',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -91,14 +60,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CommitsIndexRoute = CommitsIndexRouteImport.update({
-  id: '/commits/',
-  path: '/commits/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommitsShaRoute = CommitsShaRouteImport.update({
-  id: '/commits/$sha',
-  path: '/commits/$sha',
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicGithubWebhookRoute = ApiPublicGithubWebhookRouteImport.update({
@@ -110,56 +74,38 @@ const ApiPublicGithubWebhookRoute = ApiPublicGithubWebhookRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/deployments': typeof DeploymentsRoute
-  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/projects': typeof ProjectsRoute
-  '/pulls': typeof PullsRoute
   '/settings': typeof SettingsRoute
-  '/team': typeof TeamRoute
   '/terms-of-service': typeof TermsOfServiceRoute
-  '/commits/$sha': typeof CommitsShaRoute
-  '/commits/': typeof CommitsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/deployments': typeof DeploymentsRoute
-  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/projects': typeof ProjectsRoute
-  '/pulls': typeof PullsRoute
   '/settings': typeof SettingsRoute
-  '/team': typeof TeamRoute
   '/terms-of-service': typeof TermsOfServiceRoute
-  '/commits/$sha': typeof CommitsShaRoute
-  '/commits': typeof CommitsIndexRoute
+  '/projects': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/deployments': typeof DeploymentsRoute
-  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/projects': typeof ProjectsRoute
-  '/pulls': typeof PullsRoute
   '/settings': typeof SettingsRoute
-  '/team': typeof TeamRoute
   '/terms-of-service': typeof TermsOfServiceRoute
-  '/commits/$sha': typeof CommitsShaRoute
-  '/commits/': typeof CommitsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
 }
 export interface FileRouteTypes {
@@ -167,74 +113,50 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analytics'
-    | '/deployments'
-    | '/issues'
     | '/login'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
-    | '/projects'
-    | '/pulls'
     | '/settings'
-    | '/team'
     | '/terms-of-service'
-    | '/commits/$sha'
-    | '/commits/'
+    | '/projects/'
     | '/api/public/github-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/analytics'
-    | '/deployments'
-    | '/issues'
     | '/login'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
-    | '/projects'
-    | '/pulls'
     | '/settings'
-    | '/team'
     | '/terms-of-service'
-    | '/commits/$sha'
-    | '/commits'
+    | '/projects'
     | '/api/public/github-webhook'
   id:
     | '__root__'
     | '/'
     | '/analytics'
-    | '/deployments'
-    | '/issues'
     | '/login'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
-    | '/projects'
-    | '/pulls'
     | '/settings'
-    | '/team'
     | '/terms-of-service'
-    | '/commits/$sha'
-    | '/commits/'
+    | '/projects/'
     | '/api/public/github-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
-  DeploymentsRoute: typeof DeploymentsRoute
-  IssuesRoute: typeof IssuesRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
-  ProjectsRoute: typeof ProjectsRoute
-  PullsRoute: typeof PullsRoute
   SettingsRoute: typeof SettingsRoute
-  TeamRoute: typeof TeamRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
-  CommitsShaRoute: typeof CommitsShaRoute
-  CommitsIndexRoute: typeof CommitsIndexRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiPublicGithubWebhookRoute: typeof ApiPublicGithubWebhookRoute
 }
 
@@ -247,32 +169,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsOfServiceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/team': {
-      id: '/team'
-      path: '/team'
-      fullPath: '/team'
-      preLoaderRoute: typeof TeamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pulls': {
-      id: '/pulls'
-      path: '/pulls'
-      fullPath: '/pulls'
-      preLoaderRoute: typeof PullsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects': {
-      id: '/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -303,20 +204,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/issues': {
-      id: '/issues'
-      path: '/issues'
-      fullPath: '/issues'
-      preLoaderRoute: typeof IssuesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/deployments': {
-      id: '/deployments'
-      path: '/deployments'
-      fullPath: '/deployments'
-      preLoaderRoute: typeof DeploymentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/analytics': {
       id: '/analytics'
       path: '/analytics'
@@ -331,18 +218,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/commits/': {
-      id: '/commits/'
-      path: '/commits'
-      fullPath: '/commits/'
-      preLoaderRoute: typeof CommitsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/commits/$sha': {
-      id: '/commits/$sha'
-      path: '/commits/$sha'
-      fullPath: '/commits/$sha'
-      preLoaderRoute: typeof CommitsShaRouteImport
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/github-webhook': {
@@ -358,21 +238,25 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
-  DeploymentsRoute: DeploymentsRoute,
-  IssuesRoute: IssuesRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
-  ProjectsRoute: ProjectsRoute,
-  PullsRoute: PullsRoute,
   SettingsRoute: SettingsRoute,
-  TeamRoute: TeamRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
-  CommitsShaRoute: CommitsShaRoute,
-  CommitsIndexRoute: CommitsIndexRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
   ApiPublicGithubWebhookRoute: ApiPublicGithubWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

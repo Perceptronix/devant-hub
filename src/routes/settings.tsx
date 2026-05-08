@@ -266,6 +266,7 @@ function Settings() {
             invitedEmail: string;
             inviterId: string;
             inviterName: string;
+            inviterEmail: string;
             baseUrl: string;
           };
         }) => Promise<unknown>

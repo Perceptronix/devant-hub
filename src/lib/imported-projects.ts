@@ -12,6 +12,24 @@ export interface ImportedProject {
   org_id?: string;
 }
 
+function normalizeOrgKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/['`]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+(org|team|workspace)$/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function orgMatchesProjectOwner(org: any, owner: string) {
+  const ownerKey = normalizeOrgKey(owner);
+  const candidates = [org.github_org_login, org.name, org.slug]
+    .filter(Boolean)
+    .map((value: string) => normalizeOrgKey(String(value)));
+  return candidates.includes(ownerKey);
+}
+
 function selectedKey(userId: string) {
   return `devant.selectedProject.${userId}`;
 }
@@ -30,7 +48,7 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
         )
         .eq("created_by", userId)
         .order("created_at", { ascending: false }),
-      supabase.from("organizations").select("id, github_org_login"),
+      supabase.from("organizations").select("id, name, slug, github_org_login, owner_id"),
     ]);
     const { data, error } = projectsResult;
     const { data: orgs, error: orgError } = orgsResult;
@@ -49,7 +67,10 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
       defaultBranch: r.default_branch,
       private: r.is_private,
       github_repo_id: r.github_repo_id,
-      org_id: r.org_id ?? orgIdByLogin.get(String(r.github_repo_owner ?? "").toLowerCase()),
+      org_id:
+        r.org_id ??
+        orgIdByLogin.get(String(r.github_repo_owner ?? "").toLowerCase()) ??
+        (orgs ?? []).find((org: any) => orgMatchesProjectOwner(org, String(r.github_repo_owner ?? "")))?.id,
     }));
   } catch (err) {
     console.error("fetchImportedProjects err", err);

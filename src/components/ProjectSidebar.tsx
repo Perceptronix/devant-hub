@@ -2,7 +2,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, GitCommit, Rocket, GitPullRequest, Bug, Users, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ITEMS = [
+type Item = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean };
+const ITEMS: Item[] = [
   { to: "/projects/$projectId", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/projects/$projectId/commits", label: "Commits", icon: GitCommit },
   { to: "/projects/$projectId/deployments", label: "Deployments", icon: Rocket },
@@ -10,7 +11,7 @@ const ITEMS = [
   { to: "/projects/$projectId/issues", label: "Issues", icon: Bug },
   { to: "/projects/$projectId/team", label: "Team", icon: Users },
   { to: "/projects/$projectId/settings", label: "Settings", icon: Settings },
-] as const;
+];
 
 export function ProjectSidebar({ projectId, name }: { projectId: string; name?: string }) {
   const path = useRouterState({ select: (s) => s.location.pathname });

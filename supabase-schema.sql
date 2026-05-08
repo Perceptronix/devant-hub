@@ -31,13 +31,16 @@ returns boolean language sql stable security definer set search_path = public as
   select exists(select 1 from public.org_members where org_id = _org and user_id = _user);
 $$;
 
--- Helper: is user a member of the project's organization?
+-- Helper: is user a member of the project's organization, or the project creator?
 create or replace function public.is_project_member(_project uuid, _user uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists(
     select 1
     from public.projects p
-    where p.id = _project and public.is_org_member(p.org_id, _user)
+    where p.id = _project and (
+      p.created_by = _user or
+      (p.org_id is not null and public.is_org_member(p.org_id, _user))
+    )
   );
 $$;
 

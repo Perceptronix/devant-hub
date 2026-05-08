@@ -18,7 +18,7 @@ export const Route = createFileRoute("/projects/$projectId/commits/")({
 });
 
 function Commits() {
-  const { projectId } = useParams({ from: "/projects/$projectId/commits" });
+  const { projectId } = useParams({ from: "/projects/$projectId/commits/" });
   const { project } = useProject(projectId);
   const { user } = useAuth();
   const [rows, setRows] = useState<CommitRow[]>([]);

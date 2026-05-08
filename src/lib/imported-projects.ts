@@ -40,26 +40,56 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
   if (!userId) return [];
   try {
     const supabase = getSupabase();
-    const [projectsResult, orgsResult] = await Promise.all([
+    const [projectsResult, orgMembersResult, orgsResult] = await Promise.all([
       supabase
         .from("projects")
         .select(
-          "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id, org_id",
+          "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id, org_id, created_by",
         )
         .eq("created_by", userId)
         .order("created_at", { ascending: false }),
+      supabase.from("org_members").select("org_id").eq("user_id", userId).eq("status", "accepted"),
       supabase.from("organizations").select("id, name, slug, github_org_login, owner_id"),
     ]);
     const { data, error } = projectsResult;
+    const { data: orgMembers, error: orgMembersError } = orgMembersResult;
     const { data: orgs, error: orgError } = orgsResult;
-    if (error || orgError) {
+    if (error || orgMembersError || orgError) {
       console.error("fetchImportedProjects", error);
+      if (orgMembersError) console.error("fetchImportedProjects org_members", orgMembersError);
       if (orgError) console.error("fetchImportedProjects orgs", orgError);
       return [];
     }
+
+    const acceptedOrgIds = new Set((orgMembers ?? []).map((row: any) => String(row.org_id)));
+
+    let orgProjects: any[] = [];
+    if (acceptedOrgIds.size > 0) {
+      const { data: orgProjectsData, error: orgProjectsError } = await supabase
+        .from("projects")
+        .select(
+          "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id, org_id, created_by",
+        )
+        .in("org_id", Array.from(acceptedOrgIds))
+        .order("created_at", { ascending: false });
+
+      if (orgProjectsError) {
+        console.error("fetchImportedProjects org projects", orgProjectsError);
+      } else {
+        orgProjects = orgProjectsData ?? [];
+      }
+    }
+
+    const allProjects = [...(data ?? []), ...orgProjects].filter(
+      (project, index, self) => self.findIndex((p) => p.id === project.id) === index,
+    );
     const ownedOrgs = (orgs ?? []).filter((org: any) => String(org.owner_id ?? "") === userId);
-    const orgIdByLogin = new Map((orgs ?? []).map((org: any) => [String(org.github_org_login ?? "").toLowerCase(), org.id] as const));
-    return (data ?? []).map((r: any) => ({
+    const orgIdByLogin = new Map(
+      (orgs ?? []).map(
+        (org: any) => [String(org.github_org_login ?? "").toLowerCase(), org.id] as const,
+      ),
+    );
+    return allProjects.map((r: any) => ({
       id: r.id,
       name: r.name,
       description: r.description,
@@ -71,7 +101,9 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
       org_id:
         r.org_id ??
         orgIdByLogin.get(String(r.github_repo_owner ?? "").toLowerCase()) ??
-        (orgs ?? []).find((org: any) => orgMatchesProjectOwner(org, String(r.github_repo_owner ?? "")))?.id ??
+        (orgs ?? []).find((org: any) =>
+          orgMatchesProjectOwner(org, String(r.github_repo_owner ?? "")),
+        )?.id ??
         (ownedOrgs.length === 1 ? ownedOrgs[0].id : undefined),
     }));
   } catch (err) {
@@ -81,7 +113,10 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
 }
 
 // Insert a project into Supabase and return the inserted row as ImportedProject (or null).
-export async function insertImportedProject(userId: string, project: ImportedProject): Promise<ImportedProject | null> {
+export async function insertImportedProject(
+  userId: string,
+  project: ImportedProject,
+): Promise<ImportedProject | null> {
   if (typeof window === "undefined") return null;
   try {
     const supabase = getSupabase();

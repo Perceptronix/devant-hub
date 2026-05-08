@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
+import { emitSync } from "@/lib/sync";
 import { Github, Sun, Moon, Plus, Trash2, Loader2, Copy, Mail, Check, X } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
@@ -34,8 +35,9 @@ interface Organization {
 
 interface OrgMember {
   id: string;
-  user_id: string;
+  user_id: string | null;
   email?: string;
+  invited_email?: string;
   role: "owner" | "admin" | "member";
   status: "accepted" | "pending" | "declined";
   invited_at: string;
@@ -142,7 +144,7 @@ function Settings() {
             .eq("org_id", selectedOrg.id),
           supabase
             .from("org_members")
-            .select("id, user_id, role, status, invited_at, joined_at")
+            .select("id, user_id, role, status, invited_at, invited_email, joined_at")
             .eq("org_id", selectedOrg.id),
         ]);
 
@@ -227,36 +229,56 @@ function Settings() {
       return;
     }
 
+    const emailToInvite = inviteEmail.trim().toLowerCase();
+    // Basic email validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToInvite)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     setCreating(true);
     try {
       const supabase = getSupabase();
-      // Create pending org member invite - users accept via Notifications after GitHub login
-      const { error } = await supabase.from("org_members").insert({
-        org_id: selectedOrg.id,
-        user_id: null, // Will be linked when user accepts in Notifications
-        role: "member",
-        status: "pending",
-        invited_by: user?.id,
-        invited_at: new Date().toISOString(),
-      });
 
-      if (error) {
-        if (error.code === "23505") {
-          toast.error("User is already invited or a member");
+      // Create pending org member invite with email
+      const { data: inviteData, error: insertError } = await supabase
+        .from("org_members")
+        .insert({
+          org_id: selectedOrg.id,
+          user_id: null, // Will be linked when user accepts
+          invited_email: emailToInvite,
+          role: "member",
+          status: "pending",
+          invited_by: user?.id,
+          invited_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        if (insertError.code === "23505") {
+          toast.error("This email is already invited or a member");
         } else {
-          throw error;
+          throw insertError;
         }
-      } else {
-        toast.success(`Invite sent to ${inviteEmail}. They can accept it in Notifications after signing in.`);
-        setInviteEmail("");
-        setOpenInviteMember(false);
-        // Refresh members
-        const { data: membersData } = await supabase
-          .from("org_members")
-          .select("id, user_id, role, status, invited_at, joined_at")
-          .eq("org_id", selectedOrg.id);
-        setMembers((membersData || []) as OrgMember[]);
+        return;
       }
+
+      // TODO: Send email to invitee with accept/decline links
+      // For now, show success message
+      toast.success(
+        `Invite sent to ${emailToInvite}! They'll see it in Notifications after signing in with GitHub.`
+      );
+      setInviteEmail("");
+      setOpenInviteMember(false);
+
+      // Reload members to show the new invite
+      const { data: membersData } = await supabase
+        .from("org_members")
+        .select("id, user_id, role, status, invited_at, invited_email, joined_at")
+        .eq("org_id", selectedOrg.id);
+      setMembers((membersData || []) as OrgMember[]);
+      emitSync();
     } catch (err) {
       console.error("Failed to invite member:", err);
       toast.error("Failed to send invite");
@@ -526,7 +548,11 @@ function Settings() {
                       {members.map((member) => (
                         <div key={member.id} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
                           <div className="flex-1">
-                            <div className="font-medium text-sm">{member.role}</div>
+                            <div className="font-medium text-sm">
+                              {member.status === "pending" && member.invited_email
+                                ? member.invited_email
+                                : member.role}
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge
                                 variant={

@@ -22,17 +22,15 @@ create table if not exists public.org_members (
   role text check (role in ('owner','admin','member')) default 'member',
   status text check (status in ('accepted','pending','declined')) default 'accepted',
   invited_by uuid references auth.users(id) on delete set null,
+  invited_email text,
   invited_at timestamptz default now(),
   joined_at timestamptz,
   unique(org_id, user_id)
 );
 alter table public.org_members enable row level security;
 
--- Migration: add missing columns to existing org_members table
-alter table public.org_members add column if not exists status text check (status in ('accepted','pending','declined')) default 'accepted';
-alter table public.org_members add column if not exists invited_by uuid references auth.users(id) on delete set null;
-alter table public.org_members add column if not exists invited_at timestamptz default now();
-alter table public.org_members add column if not exists joined_at timestamptz;
+-- Migration: add invited_email column if missing
+alter table public.org_members add column if not exists invited_email text;
 
 -- Helper: is user a member of org (accepted status only)?
 create or replace function public.is_org_member(_org uuid, _user uuid)
@@ -65,7 +63,11 @@ create policy "owner creates org" on public.organizations
 
 drop policy if exists "self read membership" on public.org_members;
 create policy "self read membership" on public.org_members
-  for select using (user_id = auth.uid() or exists(select 1 from public.organizations where id = org_id and owner_id = auth.uid()) or exists(select 1 from public.org_members om where om.org_id = org_members.org_id and om.user_id = auth.uid() and om.status = 'accepted'));
+  for select using (user_id = auth.uid());
+
+drop policy if exists "owner read all members" on public.org_members;
+create policy "owner read all members" on public.org_members
+  for select using (exists(select 1 from public.organizations where id = org_id and owner_id = auth.uid()));
 
 drop policy if exists "owner manage members" on public.org_members;
 create policy "owner manage members" on public.org_members

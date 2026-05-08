@@ -28,9 +28,9 @@ function Notifications() {
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   useSyncListener(() => setTick((n) => n + 1));
 
-  // Load pending org invites
+  // Load pending org invites by email match
   useEffect(() => {
-    if (!user) {
+    if (!user?.email) {
       setInvites([]);
       return;
     }
@@ -39,10 +39,11 @@ function Notifications() {
     (async () => {
       try {
         const supabase = getSupabase();
+        // Query pending invites matching the user's email
         const { data, error } = await supabase
           .from("org_members")
-          .select("id, org_id, status, invited_at, invited_by, organizations(name)")
-          .eq("user_id", user.id)
+          .select("id, org_id, status, invited_at, organizations(name)")
+          .eq("invited_email", user.email.toLowerCase())
           .eq("status", "pending")
           .order("invited_at", { ascending: false });
 
@@ -70,7 +71,7 @@ function Notifications() {
     return () => {
       mounted = false;
     };
-  }, [user, tick]);
+  }, [user?.email, tick]);
 
   // Load GitHub notifications
   useEffect(() => {
@@ -109,14 +110,17 @@ function Notifications() {
       const supabase = getSupabase();
       const status = accept ? "accepted" : "declined";
       const updates = accept
-        ? { status, joined_at: new Date().toISOString() }
+        ? { 
+            status, 
+            user_id: user.id, // Link user when accepting
+            joined_at: new Date().toISOString() 
+          }
         : { status };
 
       const { error } = await supabase
         .from("org_members")
         .update(updates)
-        .eq("id", inviteId)
-        .eq("user_id", user.id);
+        .eq("id", inviteId);
 
       if (error) {
         console.error("Failed to respond to invite:", error);
@@ -124,7 +128,7 @@ function Notifications() {
         return;
       }
 
-      toast.success(accept ? "Invite accepted!" : "Invite declined");
+      toast.success(accept ? "Invite accepted! You've joined the organization." : "Invite declined");
       setInvites((prev) => prev.filter((i) => i.id !== inviteId));
       emitSync();
     } catch (err) {

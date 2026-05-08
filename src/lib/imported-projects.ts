@@ -62,6 +62,15 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
     }
 
     const acceptedOrgIds = new Set((orgMembers ?? []).map((row: any) => String(row.org_id)));
+    const acceptedOrgs = (orgs ?? []).filter((org: any) => acceptedOrgIds.has(String(org.id)));
+    const orgOwnerKeys = Array.from(
+      new Set(
+        acceptedOrgs
+          .flatMap((org: any) => [org.github_org_login, org.name, org.slug])
+          .filter(Boolean)
+          .map((value: string) => String(value).toLowerCase()),
+      ),
+    );
 
     let orgProjects: any[] = [];
     if (acceptedOrgIds.size > 0) {
@@ -77,6 +86,22 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
         console.error("fetchImportedProjects org projects", orgProjectsError);
       } else {
         orgProjects = orgProjectsData ?? [];
+      }
+    }
+
+    if (orgOwnerKeys.length > 0) {
+      const { data: orgOwnerProjectsData, error: orgOwnerProjectsError } = await supabase
+        .from("projects")
+        .select(
+          "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id, org_id, created_by",
+        )
+        .in("github_repo_owner", orgOwnerKeys)
+        .order("created_at", { ascending: false });
+
+      if (orgOwnerProjectsError) {
+        console.error("fetchImportedProjects org owner projects", orgOwnerProjectsError);
+      } else {
+        orgProjects = [...orgProjects, ...(orgOwnerProjectsData ?? [])];
       }
     }
 

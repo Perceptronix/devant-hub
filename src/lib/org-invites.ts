@@ -182,12 +182,30 @@ export const createOrgInvite = createServerFn({ method: "POST" })
       console.log(
         `[createOrgInvite] Sending invite to ${data.invitedEmail} for org ${org.name}`,
       );
+      // Attempt to fetch inviter metadata for richer email template
+      let senderAvatar = "";
+      let senderProfile = "";
+      try {
+        const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(
+          data.inviterId,
+        );
+        if (!userErr && userData?.user) {
+          const meta = (userData.user.user_metadata as any) ?? {};
+          senderAvatar = meta.avatar_url ?? "";
+          senderProfile = meta.profile_url ?? meta.profile_link ?? "";
+        }
+      } catch (e) {
+        // non-fatal
+      }
+
       await sendInviteEmail({
         to: data.invitedEmail,
         orgName: org.name,
         inviterName: data.inviterName,
         inviterEmail: data.inviterEmail,
         inviteUrl: `${data.baseUrl}/invites/${invite.invite_token}`,
+        senderAvatar,
+        senderProfile,
       });
       console.log(`[createOrgInvite] Invite successfully sent to ${data.invitedEmail}`);
     } catch (error) {
@@ -229,3 +247,19 @@ export const getOrgInviteByToken = createServerFn({ method: "POST" })
       status: invite.status,
     };
   });
+
+export const inviteEnvDebug = createServerFn({ method: "POST" }).handler(async () => {
+  const keys = [
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "EMAILJS_USER_ID",
+    "EMAILJS_SERVICE_ID",
+    "EMAILJS_TEMPLATE_ID",
+  ];
+  const result: Record<string, boolean> = {};
+  for (const k of keys) {
+    result[k] = Boolean(process.env[k as keyof typeof process.env]);
+  }
+  console.log("[inviteEnvDebug] env presence:", result);
+  return result;
+});

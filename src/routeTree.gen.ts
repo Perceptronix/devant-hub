@@ -16,10 +16,10 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
-import { Route as InvitesTokenRouteImport } from './routes/invites.$token'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
+import { Route as InvitesTokenRouteImport } from './routes/invites.$token'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects.$projectId.index'
 import { Route as ProjectsProjectIdTeamRouteImport } from './routes/projects.$projectId.team'
 import { Route as ProjectsProjectIdTasksRouteImport } from './routes/projects.$projectId.tasks'
@@ -62,11 +62,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InvitesTokenRoute = InvitesTokenRouteImport.update({
-  id: '/invites/$token',
-  path: '/invites/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -85,6 +80,11 @@ const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitesTokenRoute = InvitesTokenRouteImport.update({
+  id: '/invites/$token',
+  path: '/invites/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
@@ -152,12 +152,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/login': typeof LoginRoute
-  '/invites/$token': typeof InvitesTokenRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/settings': typeof SettingsRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/invites/$token': typeof InvitesTokenRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/projects/': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
@@ -176,12 +176,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/login': typeof LoginRoute
-  '/invites/$token': typeof InvitesTokenRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/settings': typeof SettingsRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/invites/$token': typeof InvitesTokenRoute
   '/projects': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
   '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsRoute
@@ -200,12 +200,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/login': typeof LoginRoute
-  '/invites/$token': typeof InvitesTokenRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/settings': typeof SettingsRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/invites/$token': typeof InvitesTokenRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/projects/': typeof ProjectsIndexRoute
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
@@ -226,12 +226,12 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/login'
-    | '/invites/$token'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
     | '/settings'
     | '/terms-of-service'
+    | '/invites/$token'
     | '/projects/$projectId'
     | '/projects/'
     | '/api/public/github-webhook'
@@ -250,12 +250,12 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/login'
-    | '/invites/$token'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
     | '/settings'
     | '/terms-of-service'
+    | '/invites/$token'
     | '/projects'
     | '/api/public/github-webhook'
     | '/projects/$projectId/deployments'
@@ -273,12 +273,12 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/login'
-    | '/invites/$token'
     | '/notifications'
     | '/onboarding'
     | '/privacy-policy'
     | '/settings'
     | '/terms-of-service'
+    | '/invites/$token'
     | '/projects/$projectId'
     | '/projects/'
     | '/api/public/github-webhook'
@@ -298,12 +298,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
   LoginRoute: typeof LoginRoute
-  InvitesTokenRoute: typeof InvitesTokenRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   SettingsRoute: typeof SettingsRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
+  InvitesTokenRoute: typeof InvitesTokenRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiPublicGithubWebhookRoute: typeof ApiPublicGithubWebhookRoute
@@ -360,13 +360,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
-      '/invites/$token': {
-        id: '/invites/$token'
-        path: '/invites/$token'
-        fullPath: '/invites/$token'
-        preLoaderRoute: typeof InvitesTokenRouteImport
-        parentRoute: typeof rootRouteImport
-      }
     '/': {
       id: '/'
       path: '/'
@@ -386,6 +379,13 @@ declare module '@tanstack/react-router' {
       path: '/projects/$projectId'
       fullPath: '/projects/$projectId'
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invites/$token': {
+      id: '/invites/$token'
+      path: '/invites/$token'
+      fullPath: '/invites/$token'
+      preLoaderRoute: typeof InvitesTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$projectId/': {

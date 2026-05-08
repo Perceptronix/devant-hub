@@ -170,7 +170,9 @@ function Settings() {
             .eq("org_id", selectedOrg.id),
           supabase
             .from("org_members")
-            .select("id, user_id, role, status, invited_at, invited_email, joined_at, display_name, github_login, avatar_url")
+            .select(
+              "id, user_id, role, status, invited_at, invited_email, joined_at, display_name, github_login, avatar_url",
+            )
             .eq("org_id", selectedOrg.id),
         ]);
 
@@ -189,6 +191,15 @@ function Settings() {
   const handleCreateOrg = async () => {
     if (!newOrgName.trim() || !newOrgSlug.trim() || !user) {
       toast.error("Organization name and slug are required");
+      return;
+    }
+
+    // Check if user already owns an organization
+    const ownedOrgs = orgs.filter((org) => org.owner_id === user.id);
+    if (ownedOrgs.length > 0) {
+      toast.error(
+        "You can only create one organization. Delete your existing organization first if you want to create a new one.",
+      );
       return;
     }
 
@@ -265,14 +276,12 @@ function Settings() {
     }
 
     setCreating(true);
-    let inviteResult:
-      | {
-          id: string;
-          orgName: string;
-          inviteToken: string;
-          invitedEmail: string;
-        }
-      | null = null;
+    let inviteResult: {
+      id: string;
+      orgName: string;
+      inviteToken: string;
+      invitedEmail: string;
+    } | null = null;
     try {
       inviteResult = (await (
         createOrgInvite as unknown as (options: {
@@ -348,7 +357,9 @@ function Settings() {
       const supabase = getSupabase();
       const { data: membersData } = await supabase
         .from("org_members")
-        .select("id, user_id, role, status, invited_at, invited_email, joined_at, display_name, github_login, avatar_url")
+        .select(
+          "id, user_id, role, status, invited_at, invited_email, joined_at, display_name, github_login, avatar_url",
+        )
         .eq("org_id", selectedOrg.id);
       setMembers((membersData || []) as OrgMember[]);
       emitSync();
@@ -395,6 +406,31 @@ function Settings() {
     } catch (err) {
       console.error("Failed to remove member:", err);
       toast.error("Failed to remove member");
+    }
+  };
+
+  const handleDeleteOrg = async () => {
+    if (!selectedOrg || !user || selectedOrg.owner_id !== user.id) {
+      toast.error("You can only delete organizations you own");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.from("organizations").delete().eq("id", selectedOrg.id);
+      if (error) throw error;
+
+      setOrgs((prev) => prev.filter((org) => org.id !== selectedOrg.id));
+      setSelectedOrg(null);
+      setDepartments([]);
+      setMembers([]);
+      toast.success("Organization deleted");
+    } catch (err) {
+      console.error("Failed to delete organization:", err);
+      toast.error("Failed to delete organization");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -463,7 +499,10 @@ function Settings() {
             <Card>
               <Dialog open={openCreateOrg} onOpenChange={setOpenCreateOrg}>
                 <DialogTrigger asChild>
-                  <Button className="gap-1.5">
+                  <Button
+                    className="gap-1.5"
+                    disabled={orgs.some((org) => org.owner_id === user?.id)}
+                  >
                     <Plus className="size-4" /> Create Organization
                   </Button>
                 </DialogTrigger>
@@ -513,6 +552,49 @@ function Settings() {
             {/* Selected Org Details */}
             {selectedOrg && (
               <>
+                {/* Org Header */}
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-display font-semibold">{selectedOrg.name}</h3>
+                      <div className="text-sm text-muted-foreground">/{selectedOrg.slug}</div>
+                    </div>
+                    {isOrgOwner && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="gap-1">
+                            <Trash2 className="size-3" /> Delete Org
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogTitle>Delete Organization?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete the organization "{selectedOrg.name}" and
+                            all its projects, departments, and members. This action cannot be
+                            undone.
+                          </AlertDialogDescription>
+                          <div className="flex gap-3 justify-end">
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDeleteOrg}
+                              className="bg-danger hover:bg-danger/90"
+                              disabled={loading}
+                            >
+                              {loading ? (
+                                <>
+                                  <Loader2 className="size-4 mr-2 animate-spin" />
+                                  Deleting...
+                                </>
+                              ) : (
+                                "Delete Organization"
+                              )}
+                            </AlertDialogAction>
+                          </div>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </Card>
                 {/* Departments */}
                 <Card>
                   <div className="flex items-center justify-between mb-4">
@@ -666,11 +748,17 @@ function Settings() {
                             member.invited_email ||
                             member.role
                           : member.status === "pending"
-                            ? member.invited_email || member.display_name || member.github_login || member.role
-                            : member.display_name || member.github_login || member.invited_email || member.role;
+                            ? member.invited_email ||
+                              member.display_name ||
+                              member.github_login ||
+                              member.role
+                            : member.display_name ||
+                              member.github_login ||
+                              member.invited_email ||
+                              member.role;
                         const memberAvatar = isCurrentUser
                           ? currentGitHubAvatar
-                          : member.avatar_url ?? undefined;
+                          : (member.avatar_url ?? undefined);
 
                         return (
                           <div

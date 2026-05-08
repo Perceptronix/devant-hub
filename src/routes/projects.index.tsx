@@ -160,7 +160,7 @@ function Projects() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader><DialogTitle className="font-display">Link a Repository</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
             <Input placeholder="Search your GitHub repos…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -168,18 +168,18 @@ function Projects() {
               {user ? "Already-linked projects are hidden." : "Sign in with GitHub first."}
             </div>
             {user ? (
-              <div className="max-h-96 overflow-auto mt-2 space-y-2">
+              <div className="max-h-96 overflow-y-auto overflow-x-hidden mt-2 space-y-2 pr-1">
                 {fetchingRepos ? (
                   <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Loading repositories…</div>
                 ) : filteredRepos.length === 0 ? (
                   <div className="text-sm text-muted-foreground">No repositories available to import.</div>
                 ) : filteredRepos.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between p-2 rounded hover:bg-surface-elevated">
-                    <div className="min-w-0">
+                  <div key={r.id} className="flex w-full min-w-0 items-center justify-between gap-3 rounded p-2 hover:bg-surface-elevated">
+                    <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">{r.owner?.login}/{r.name}</div>
                       <div className="text-xs text-muted-foreground truncate">{r.description ?? "No description"}</div>
                     </div>
-                    <Button size="sm" className="gap-1 shrink-0" onClick={() => importRepo(r)} disabled={importingId === r.id}>
+                    <Button size="sm" className="gap-1 shrink-0 self-start" onClick={() => importRepo(r)} disabled={importingId === r.id}>
                       {importingId === r.id ? <><Loader2 className="size-3 animate-spin" /> Importing…</> : "Import"}
                     </Button>
                   </div>

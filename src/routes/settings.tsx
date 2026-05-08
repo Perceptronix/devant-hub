@@ -660,30 +660,42 @@ function Settings() {
                           key={member.id}
                           className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border"
                         >
-                          <div className="flex-1">
-                            <div className="font-medium text-sm">
-                              {member.status === "pending"
-                                ? member.invited_email || member.display_name || member.github_login || member.role
-                                : member.display_name || member.github_login || member.invited_email || member.role}
-                            </div>
-                            {member.github_login && member.status === "accepted" && (
-                              <div className="text-xs text-muted-foreground">@{member.github_login}</div>
-                            )}
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge
-                                variant={
-                                  member.status === "accepted"
-                                    ? "default"
-                                    : member.status === "pending"
-                                      ? "secondary"
-                                      : "destructive"
-                                }
-                              >
-                                {member.status}
-                              </Badge>
-                              {member.user_id && member.status === "accepted" && (
-                                <Badge variant="outline">Linked</Badge>
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <Avatar className="size-9 shrink-0">
+                              <AvatarImage src={member.avatar_url ?? undefined} />
+                              <AvatarFallback>
+                                {(
+                                  member.display_name || member.github_login || member.invited_email || member.role || "?"
+                                )
+                                  .slice(0, 1)
+                                  .toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-sm truncate">
+                                {member.status === "pending"
+                                  ? member.invited_email || member.display_name || member.github_login || member.role
+                                  : member.display_name || member.github_login || member.invited_email || member.role}
+                              </div>
+                              {member.github_login && member.status === "accepted" && (
+                                <div className="text-xs text-muted-foreground truncate">@{member.github_login}</div>
                               )}
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <Badge
+                                  variant={
+                                    member.status === "accepted"
+                                      ? "default"
+                                      : member.status === "pending"
+                                        ? "secondary"
+                                        : "destructive"
+                                  }
+                                >
+                                  {member.status}
+                                </Badge>
+                                {member.user_id && member.status === "accepted" && (
+                                  <Badge variant="outline">Linked</Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                           {isOrgOwner && member.role !== "owner" && (

@@ -2,6 +2,7 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
+import { getSupabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useSyncListener } from "@/lib/sync";
+import { emitSync, useSyncListener } from "@/lib/sync";
 
 interface Task {
   id: string;
@@ -38,8 +39,16 @@ interface Task {
   assigned_to_avatar?: string;
   created_by_id: string;
   created_by_name: string;
+  created_by_avatar?: string;
   due_date?: string;
   created_at: string;
+}
+
+interface TeamMember {
+  linked_user_id: string | null;
+  github_login: string;
+  name: string | null;
+  avatar_url: string | null;
 }
 
 export const Route = createFileRoute("/projects/$projectId/tasks")({
@@ -51,6 +60,7 @@ function Tasks() {
   const { project } = useProject(projectId);
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTask, setNewTask] = useState({
@@ -65,35 +75,149 @@ function Tasks() {
 
   // Load tasks
   useEffect(() => {
-    if (!project) return;
-    setLoading(true);
-    // TODO: Fetch tasks from Supabase
-    setTimeout(() => {
+    if (!project) {
       setTasks([]);
+      setTeamMembers([]);
       setLoading(false);
-    }, 500);
+      return;
+    }
+
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const supabase = getSupabase();
+        const [{ data: memberRows, error: memberError }, { data: taskRows, error: taskError }] =
+          await Promise.all([
+            supabase
+              .from("project_team_members")
+              .select("linked_user_id, github_login, name, avatar_url")
+              .eq("project_id", project.id)
+              .order("name", { ascending: true }),
+            supabase
+              .from("tasks")
+              .select("id, title, description, status, priority, assigned_to, created_by, due_date, created_at")
+              .eq("project_id", project.id)
+              .order("created_at", { ascending: false }),
+          ]);
+
+        if (!mounted) return;
+        if (memberError) {
+          console.error("Failed to load project team members:", memberError);
+        }
+        if (taskError) {
+          console.error("Failed to load tasks:", taskError);
+        }
+
+        const members = (memberRows ?? []).map((row: any) => ({
+          linked_user_id: row.linked_user_id,
+          github_login: row.github_login,
+          name: row.name,
+          avatar_url: row.avatar_url,
+        })) as TeamMember[];
+        const memberByUserId = new Map(
+          members
+            .filter((member) => Boolean(member.linked_user_id))
+            .map((member) => [member.linked_user_id as string, member] as const)
+        );
+
+        const currentUserLabel = (user?.user_metadata as any)?.user_name || user?.email || "Unknown";
+        const currentUserAvatar = (user?.user_metadata as any)?.avatar_url || undefined;
+
+        const loadedTasks = (taskRows ?? []).map((row: any) => {
+          const assignedMember = row.assigned_to ? memberByUserId.get(row.assigned_to) : null;
+          const createdByMember = row.created_by ? memberByUserId.get(row.created_by) : null;
+          const createdByCurrentUser = row.created_by === user?.id;
+
+          return {
+            id: row.id,
+            title: row.title,
+            description: row.description || undefined,
+            status: (row.status || "todo") as Task["status"],
+            priority: (row.priority || "medium") as Task["priority"],
+            assigned_to_id: row.assigned_to || undefined,
+            assigned_to_name: assignedMember?.name || assignedMember?.github_login || undefined,
+            assigned_to_avatar: assignedMember?.avatar_url || undefined,
+            created_by_id: row.created_by,
+            created_by_name:
+              (createdByCurrentUser ? currentUserLabel : null) ||
+              createdByMember?.name ||
+              createdByMember?.github_login ||
+              "Unknown",
+            created_by_avatar:
+              (createdByCurrentUser ? currentUserAvatar : null) || createdByMember?.avatar_url || undefined,
+            due_date: row.due_date || undefined,
+            created_at: row.created_at,
+          } as Task;
+        });
+
+        setTeamMembers(members);
+        setTasks(loadedTasks);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [project, tick]);
 
   const handleCreate = async () => {
-    if (!newTask.title.trim() || !user) {
+    if (!newTask.title.trim() || !user || !project) {
       toast.error("Title is required");
+      return;
+    }
+
+    const assignableMembers = teamMembers.filter((member) => Boolean(member.linked_user_id));
+    if (assignableMembers.length > 0 && !newTask.assigned_to_id) {
+      toast.error("Select a team member to assign the task");
       return;
     }
 
     setCreating(true);
     try {
-      // TODO: Create task in Supabase
+      const supabase = getSupabase();
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert({
+          project_id: project?.id,
+          created_by: user.id,
+          assigned_to: newTask.assigned_to_id || null,
+          title: newTask.title.trim(),
+          description: newTask.description.trim() || null,
+          status: "todo",
+          priority: newTask.priority,
+          due_date: newTask.due_date || null,
+        })
+        .select("id, title, description, status, priority, assigned_to, created_by, due_date, created_at")
+        .single();
+
+      if (error) throw error;
+
+      const memberByUserId = new Map(
+        teamMembers
+          .filter((member) => Boolean(member.linked_user_id))
+          .map((member) => [member.linked_user_id as string, member] as const)
+      );
+      const assignedMember = data.assigned_to ? memberByUserId.get(data.assigned_to) : null;
+      const currentUserLabel = (user.user_metadata as any)?.user_name || user.email || "Unknown";
+      const currentUserAvatar = (user.user_metadata as any)?.avatar_url || undefined;
+
       const task: Task = {
-        id: Date.now().toString(),
-        title: newTask.title,
-        description: newTask.description || undefined,
-        status: "todo",
-        priority: newTask.priority,
-        assigned_to_id: newTask.assigned_to_id || undefined,
-        created_by_id: user.id,
-        created_by_name: (user.user_metadata as any)?.user_name || user.email || "Unknown",
-        due_date: newTask.due_date || undefined,
-        created_at: new Date().toISOString(),
+        id: data.id,
+        title: data.title,
+        description: data.description || undefined,
+        status: (data.status || "todo") as Task["status"],
+        priority: (data.priority || "medium") as Task["priority"],
+        assigned_to_id: data.assigned_to || undefined,
+        assigned_to_name: assignedMember?.name || assignedMember?.github_login || undefined,
+        assigned_to_avatar: assignedMember?.avatar_url || undefined,
+        created_by_id: data.created_by,
+        created_by_name: currentUserLabel,
+        created_by_avatar: currentUserAvatar,
+        due_date: data.due_date || undefined,
+        created_at: data.created_at,
       };
 
       setTasks((prev) => [task, ...prev]);
@@ -104,6 +228,7 @@ function Tasks() {
         assigned_to_id: "",
         due_date: "",
       });
+      emitSync(project?.id);
       toast.success("Task created");
     } catch (err) {
       console.error("Failed to create task:", err);
@@ -114,16 +239,30 @@ function Tasks() {
   };
 
   const handleStatusChange = async (taskId: string, newStatus: Task["status"]) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
-    );
-    // TODO: Update in Supabase
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.from("tasks").update({ status: newStatus }).eq("id", taskId);
+      if (error) throw error;
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+      emitSync(project?.id);
+    } catch (err) {
+      console.error("Failed to update task status:", err);
+      toast.error("Failed to update task");
+    }
   };
 
   const handleDelete = async (taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    // TODO: Delete from Supabase
-    toast.success("Task deleted");
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+      if (error) throw error;
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      emitSync(project?.id);
+      toast.success("Task deleted");
+    } catch (err) {
+      console.error("Failed to delete task:", err);
+      toast.error("Failed to delete task");
+    }
   };
 
   const grouped = {
@@ -166,7 +305,35 @@ function Tasks() {
             onChange={(e) => setNewTask((p) => ({ ...p, description: e.target.value }))}
             className="min-h-20"
           />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <Select
+              value={newTask.assigned_to_id}
+              onValueChange={(v) =>
+                setNewTask((p) => ({
+                  ...p,
+                  assigned_to_id: v,
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Assign to team member" />
+              </SelectTrigger>
+              <SelectContent>
+                {teamMembers.filter((member) => member.linked_user_id).length === 0 ? (
+                  <SelectItem value="__none" disabled>
+                    No linked team members
+                  </SelectItem>
+                ) : (
+                  teamMembers
+                    .filter((member) => member.linked_user_id)
+                    .map((member) => (
+                      <SelectItem key={member.linked_user_id} value={member.linked_user_id as string}>
+                        {member.name || member.github_login}
+                      </SelectItem>
+                    ))
+                )}
+              </SelectContent>
+            </Select>
             <Select
               value={newTask.priority}
               onValueChange={(v) =>
@@ -206,6 +373,9 @@ function Tasks() {
               )}
             </Button>
           </div>
+          <p className="text-[10px] text-muted-foreground">
+            Assigning to a linked team member makes the task visible to the rest of the project team.
+          </p>
         </div>
       </div>
 

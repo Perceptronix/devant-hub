@@ -2,11 +2,12 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
+import { getSupabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2 } from "lucide-react";
-import { useSyncListener } from "@/lib/sync";
+import { emitSync, useSyncListener } from "@/lib/sync";
 
 interface Message {
   id: string;
@@ -18,6 +19,13 @@ interface Message {
   message_type: "text" | "system";
 }
 
+interface TeamMember {
+  linked_user_id: string | null;
+  github_login: string;
+  name: string | null;
+  avatar_url: string | null;
+}
+
 export const Route = createFileRoute("/projects/$projectId/messaging")({
   component: Messaging,
 });
@@ -27,6 +35,7 @@ function Messaging() {
   const { project } = useProject(projectId);
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -41,23 +50,91 @@ function Messaging() {
 
   // Load messages
   useEffect(() => {
-    if (!project) return;
-    setLoading(true);
-    // TODO: Fetch messages from Supabase
-    // For now, simulate some messages
-    setTimeout(() => {
-      setMessages([
-        {
-          id: "1",
-          sender_id: "system",
-          sender_name: "System",
-          content: `Welcome to the messaging channel for ${project.repo}. Collaborate with your team here.`,
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          message_type: "system",
-        },
-      ]);
+    if (!project) {
+      setMessages([]);
+      setTeamMembers([]);
       setLoading(false);
-    }, 500);
+      return;
+    }
+
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const supabase = getSupabase();
+        const [{ data: memberRows, error: memberError }, { data: messageRows, error: messageError }] =
+          await Promise.all([
+            supabase
+              .from("project_team_members")
+              .select("linked_user_id, github_login, name, avatar_url")
+              .eq("project_id", project.id)
+              .order("name", { ascending: true }),
+            supabase
+              .from("messages")
+              .select("id, sender_id, content, created_at, message_type")
+              .eq("project_id", project.id)
+              .order("created_at", { ascending: true }),
+          ]);
+
+        if (!mounted) return;
+        if (memberError) {
+          console.error("Failed to load project team members:", memberError);
+        }
+        if (messageError) {
+          console.error("Failed to load messages:", messageError);
+        }
+
+        const members = (memberRows ?? []).map((row: any) => ({
+          linked_user_id: row.linked_user_id,
+          github_login: row.github_login,
+          name: row.name,
+          avatar_url: row.avatar_url,
+        })) as TeamMember[];
+        const memberByUserId = new Map(
+          members
+            .filter((member) => Boolean(member.linked_user_id))
+            .map((member) => [member.linked_user_id as string, member] as const)
+        );
+
+        const loadedMessages = (messageRows ?? []).map((row: any) => {
+          const member = row.sender_id ? memberByUserId.get(row.sender_id) : null;
+          const isCurrentUser = row.sender_id === user?.id;
+          return {
+            id: row.id,
+            sender_id: row.sender_id,
+            sender_name:
+              (isCurrentUser ? (user?.user_metadata as any)?.user_name || user?.email : null) ||
+              member?.name ||
+              member?.github_login ||
+              (row.sender_id ? row.sender_id.slice(0, 8) : "Unknown"),
+            sender_avatar:
+              (isCurrentUser ? (user?.user_metadata as any)?.avatar_url : null) || member?.avatar_url || undefined,
+            content: row.content,
+            created_at: row.created_at,
+            message_type: row.message_type === "system" ? "system" : "text",
+          } as Message;
+        });
+
+        setTeamMembers(members);
+        setMessages([
+          {
+            id: `system-${project.id}`,
+            sender_id: "system",
+            sender_name: "System",
+            content: `Welcome to the messaging channel for ${project.repo}. Collaborate with your team here.`,
+            created_at: new Date().toISOString(),
+            message_type: "system",
+          },
+          ...loadedMessages,
+        ]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [project, tick]);
 
   const handleSend = async () => {
@@ -68,17 +145,38 @@ function Messaging() {
     setInput("");
 
     try {
-      // TODO: Send message to Supabase
+      const supabase = getSupabase();
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          project_id: project.id,
+          sender_id: user.id,
+          content,
+          message_type: "text",
+        })
+        .select("id, sender_id, content, created_at, message_type")
+        .single();
+
+      if (error) throw error;
+
+      const memberByUserId = new Map(
+        teamMembers
+          .filter((member) => Boolean(member.linked_user_id))
+          .map((member) => [member.linked_user_id as string, member] as const)
+      );
+      const member = memberByUserId.get(user.id);
       const newMsg: Message = {
-        id: Date.now().toString(),
-        sender_id: user.id,
-        sender_name: (user.user_metadata as any)?.user_name || user.email,
-        sender_avatar: (user.user_metadata as any)?.avatar_url,
-        content,
-        created_at: new Date().toISOString(),
-        message_type: "text",
+        id: data.id,
+        sender_id: data.sender_id,
+        sender_name: (user.user_metadata as any)?.user_name || user.email || member?.github_login || "You",
+        sender_avatar: (user.user_metadata as any)?.avatar_url || member?.avatar_url || undefined,
+        content: data.content,
+        created_at: data.created_at,
+        message_type: data.message_type === "system" ? "system" : "text",
       };
+
       setMessages((prev) => [...prev, newMsg]);
+      emitSync(project.id);
     } catch (err) {
       console.error("Failed to send message:", err);
       setInput(content); // restore input on error

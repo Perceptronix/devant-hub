@@ -31,6 +31,16 @@ returns boolean language sql stable security definer set search_path = public as
   select exists(select 1 from public.org_members where org_id = _org and user_id = _user);
 $$;
 
+-- Helper: is user a member of the project's organization?
+create or replace function public.is_project_member(_project uuid, _user uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists(
+    select 1
+    from public.projects p
+    where p.id = _project and public.is_org_member(p.org_id, _user)
+  );
+$$;
+
 drop policy if exists "members read org" on public.organizations;
 create policy "members read org" on public.organizations
   for select using (public.is_org_member(id, auth.uid()) or owner_id = auth.uid());
@@ -118,6 +128,9 @@ create table if not exists public.project_team_members (
   unique(project_id, github_login)
 );
 alter table public.project_team_members enable row level security;
+drop policy if exists "project members read team members" on public.project_team_members;
+create policy "project members read team members" on public.project_team_members
+  for select using (public.is_project_member(project_id, auth.uid()));
 
 -- ----------------- Commits -----------------
 create table if not exists public.commits (
@@ -223,6 +236,12 @@ create table if not exists public.tasks (
   updated_at timestamptz default now()
 );
 alter table public.tasks enable row level security;
+drop policy if exists "project members read tasks" on public.tasks;
+create policy "project members read tasks" on public.tasks
+  for select using (public.is_project_member(project_id, auth.uid()));
+drop policy if exists "project members write tasks" on public.tasks;
+create policy "project members write tasks" on public.tasks
+  for all using (public.is_project_member(project_id, auth.uid())) with check (public.is_project_member(project_id, auth.uid()));
 
 create table if not exists public.task_permissions (
   id uuid primary key default gen_random_uuid(),
@@ -247,6 +266,12 @@ create table if not exists public.messages (
   created_at timestamptz default now()
 );
 alter table public.messages enable row level security;
+drop policy if exists "project members read messages" on public.messages;
+create policy "project members read messages" on public.messages
+  for select using (public.is_project_member(project_id, auth.uid()));
+drop policy if exists "project members insert messages" on public.messages;
+create policy "project members insert messages" on public.messages
+  for insert with check (sender_id = auth.uid() and public.is_project_member(project_id, auth.uid()));
 
 -- ----------------- Notifications -----------------
 create table if not exists public.notifications (

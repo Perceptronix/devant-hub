@@ -7,9 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Github, Trash2 } from "lucide-react";
-import { demoDepartments } from "@/lib/demo-data";
-import { Badge } from "@/components/ui/badge";
+import { Github, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — DevANT" }] }),
@@ -19,17 +18,17 @@ export const Route = createFileRoute("/settings")({
 function Settings() {
   const { user } = useAuth();
   const meta = (user?.user_metadata as Record<string, string> | undefined) ?? {};
+  const [theme, setTheme] = useTheme();
+
   return (
     <>
       <PageHeader title="Settings" />
       <Tabs defaultValue="profile">
-        <TabsList className="flex-wrap">
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="org">Organization</TabsTrigger>
-          <TabsTrigger value="depts">Departments</TabsTrigger>
+          <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="danger">Danger Zone</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -46,29 +45,31 @@ function Settings() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="org">
+        <TabsContent value="appearance">
           <Card>
-            <Field label="Organization name"><Input defaultValue="Perceptronix" /></Field>
-            <Field label="Slug"><Input defaultValue="perceptronix" /></Field>
-            <Button>Save</Button>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="depts">
-          <Card>
-            <div className="space-y-2">
-              {demoDepartments.map((d) => (
-                <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface">
-                  <div className="flex items-center gap-2">
-                    <span>{d.icon}</span>
-                    <span>{d.name}</span>
-                    <Badge variant="outline" className="text-[10px]" style={{ borderColor: d.color, color: d.color }}>{d.color}</Badge>
-                  </div>
-                  <Button variant="ghost" size="icon"><Trash2 className="size-4" /></Button>
+            <h3 className="font-display font-semibold mb-4">Theme</h3>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setTheme("light")}
+                className={`flex-1 flex items-center gap-3 p-4 rounded-lg border transition-colors ${theme === "light" ? "border-primary bg-primary/10" : "border-border hover:bg-surface-elevated"}`}
+              >
+                <Sun className="size-5" />
+                <div className="text-left">
+                  <div className="font-medium">Light</div>
+                  <div className="text-xs text-muted-foreground">Bright & clean</div>
                 </div>
-              ))}
+              </button>
+              <button
+                onClick={() => setTheme("dark")}
+                className={`flex-1 flex items-center gap-3 p-4 rounded-lg border transition-colors ${theme === "dark" ? "border-primary bg-primary/10" : "border-border hover:bg-surface-elevated"}`}
+              >
+                <Moon className="size-5" />
+                <div className="text-left">
+                  <div className="font-medium">Dark</div>
+                  <div className="text-xs text-muted-foreground">Easy on the eyes</div>
+                </div>
+              </button>
             </div>
-            <Button className="mt-4">Add Department</Button>
           </Card>
         </TabsContent>
 
@@ -80,7 +81,7 @@ function Settings() {
                 <div className="font-medium">GitHub</div>
                 <div className="text-xs text-muted-foreground">Scopes: repo, read:org, read:user</div>
               </div>
-              <Button variant="outline">{user ? "Disconnect" : "Connect"}</Button>
+              <Button variant="outline">{user ? "Connected" : "Connect"}</Button>
             </div>
           </Card>
         </TabsContent>
@@ -98,21 +99,13 @@ function Settings() {
             ))}
           </Card>
         </TabsContent>
-
-        <TabsContent value="danger">
-          <Card className="border-danger/40">
-            <h3 className="font-display font-semibold mb-2 text-danger">Delete Organization</h3>
-            <p className="text-sm text-muted-foreground mb-4">This will permanently remove all data, projects, and team members. This cannot be undone.</p>
-            <Button variant="destructive">Delete Organization</Button>
-          </Card>
-        </TabsContent>
       </Tabs>
     </>
   );
 }
 
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`glass rounded-xl p-6 mt-4 max-w-2xl animate-fade-up ${className}`}>{children}</div>;
+function Card({ children }: { children: React.ReactNode }) {
+  return <div className="glass rounded-xl p-6 mt-4 max-w-2xl">{children}</div>;
 }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

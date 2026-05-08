@@ -57,6 +57,7 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
       if (orgError) console.error("fetchImportedProjects orgs", orgError);
       return [];
     }
+    const ownedOrgs = (orgs ?? []).filter((org: any) => String(org.owner_id ?? "") === userId);
     const orgIdByLogin = new Map((orgs ?? []).map((org: any) => [String(org.github_org_login ?? "").toLowerCase(), org.id] as const));
     return (data ?? []).map((r: any) => ({
       id: r.id,
@@ -70,7 +71,8 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
       org_id:
         r.org_id ??
         orgIdByLogin.get(String(r.github_repo_owner ?? "").toLowerCase()) ??
-        (orgs ?? []).find((org: any) => orgMatchesProjectOwner(org, String(r.github_repo_owner ?? "")))?.id,
+        (orgs ?? []).find((org: any) => orgMatchesProjectOwner(org, String(r.github_repo_owner ?? "")))?.id ??
+        (ownedOrgs.length === 1 ? ownedOrgs[0].id : undefined),
     }));
   } catch (err) {
     console.error("fetchImportedProjects err", err);

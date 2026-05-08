@@ -67,12 +67,18 @@ function Projects() {
     try {
       const supabase = getSupabase();
       const ownerLogin = String(r.owner?.login ?? "").toLowerCase();
-      const { data: orgRows } = await supabase
-        .from("organizations")
-        .select("id, github_org_login")
-        .eq("github_org_login", ownerLogin)
-        .limit(1);
-      const orgId = orgRows?.[0]?.id ?? undefined;
+      const [{ data: orgRows }, { data: ownedOrgs }] = await Promise.all([
+        supabase
+          .from("organizations")
+          .select("id, github_org_login, owner_id")
+          .eq("github_org_login", ownerLogin)
+          .limit(1),
+        supabase
+          .from("organizations")
+          .select("id, github_org_login, owner_id")
+          .eq("owner_id", user.id),
+      ]);
+      const orgId = orgRows?.[0]?.id ?? (ownedOrgs?.length === 1 ? ownedOrgs[0].id : undefined);
 
       const imported: ImportedProject = {
         id: String(r.id), name: r.name, owner: r.owner?.login ?? "", repo: r.name,

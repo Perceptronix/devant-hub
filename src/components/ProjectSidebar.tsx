@@ -32,7 +32,7 @@ export function ProjectSidebar({ projectId, name }: { projectId: string; name?: 
             <Link
               key={it.to}
               to={it.to as any}
-              params={{ projectId }}
+              params={{ projectId } as any}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors my-0.5",
                 active ? "bg-primary/15 text-primary" : "text-foreground/80 hover:bg-surface-elevated"
@@ -59,7 +59,7 @@ export function ProjectMobileNav({ projectId }: { projectId: string }) {
             <Link
               key={it.to}
               to={it.to as any}
-              params={{ projectId }}
+              params={{ projectId } as any}
               className={cn(
                 "px-3 py-1.5 rounded-full text-xs whitespace-nowrap border",
                 active ? "bg-primary/15 text-primary border-primary/40" : "border-border text-foreground/80"

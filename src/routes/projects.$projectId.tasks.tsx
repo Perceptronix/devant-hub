@@ -358,8 +358,25 @@ function Tasks() {
                   teamMembers
                     .filter((member) => member.linked_user_id)
                     .map((member) => (
-                      <SelectItem key={member.linked_user_id} value={member.linked_user_id as string}>
-                        {member.name || member.github_login}
+                      <SelectItem
+                        key={member.linked_user_id}
+                        value={member.linked_user_id as string}
+                        className="py-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Avatar className="size-5 shrink-0">
+                            <AvatarImage src={member.avatar_url ?? undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {(member.name || member.github_login || "?").slice(0, 1).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="truncate text-sm">{member.name || member.github_login}</div>
+                            <div className="truncate text-[10px] text-muted-foreground">
+                              @{member.github_login}
+                            </div>
+                          </div>
+                        </div>
                       </SelectItem>
                     ))
                 )}

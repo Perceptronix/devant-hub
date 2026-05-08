@@ -21,8 +21,10 @@ import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects.$projectId.index'
 import { Route as ProjectsProjectIdTeamRouteImport } from './routes/projects.$projectId.team'
+import { Route as ProjectsProjectIdTasksRouteImport } from './routes/projects.$projectId.tasks'
 import { Route as ProjectsProjectIdSettingsRouteImport } from './routes/projects.$projectId.settings'
 import { Route as ProjectsProjectIdPullsRouteImport } from './routes/projects.$projectId.pulls'
+import { Route as ProjectsProjectIdMessagingRouteImport } from './routes/projects.$projectId.messaging'
 import { Route as ProjectsProjectIdIssuesRouteImport } from './routes/projects.$projectId.issues'
 import { Route as ProjectsProjectIdDeploymentsRouteImport } from './routes/projects.$projectId.deployments'
 import { Route as ApiPublicGithubWebhookRouteImport } from './routes/api/public/github-webhook'
@@ -89,6 +91,11 @@ const ProjectsProjectIdTeamRoute = ProjectsProjectIdTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
+const ProjectsProjectIdTasksRoute = ProjectsProjectIdTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
 const ProjectsProjectIdSettingsRoute =
   ProjectsProjectIdSettingsRouteImport.update({
     id: '/settings',
@@ -100,6 +107,12 @@ const ProjectsProjectIdPullsRoute = ProjectsProjectIdPullsRouteImport.update({
   path: '/pulls',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
+const ProjectsProjectIdMessagingRoute =
+  ProjectsProjectIdMessagingRouteImport.update({
+    id: '/messaging',
+    path: '/messaging',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
 const ProjectsProjectIdIssuesRoute = ProjectsProjectIdIssuesRouteImport.update({
   id: '/issues',
   path: '/issues',
@@ -143,8 +156,10 @@ export interface FileRoutesByFullPath {
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
   '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsRoute
   '/projects/$projectId/issues': typeof ProjectsProjectIdIssuesRoute
+  '/projects/$projectId/messaging': typeof ProjectsProjectIdMessagingRoute
   '/projects/$projectId/pulls': typeof ProjectsProjectIdPullsRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsRoute
+  '/projects/$projectId/tasks': typeof ProjectsProjectIdTasksRoute
   '/projects/$projectId/team': typeof ProjectsProjectIdTeamRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/commits/$sha': typeof ProjectsProjectIdCommitsShaRoute
@@ -163,8 +178,10 @@ export interface FileRoutesByTo {
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
   '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsRoute
   '/projects/$projectId/issues': typeof ProjectsProjectIdIssuesRoute
+  '/projects/$projectId/messaging': typeof ProjectsProjectIdMessagingRoute
   '/projects/$projectId/pulls': typeof ProjectsProjectIdPullsRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsRoute
+  '/projects/$projectId/tasks': typeof ProjectsProjectIdTasksRoute
   '/projects/$projectId/team': typeof ProjectsProjectIdTeamRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/commits/$sha': typeof ProjectsProjectIdCommitsShaRoute
@@ -185,8 +202,10 @@ export interface FileRoutesById {
   '/api/public/github-webhook': typeof ApiPublicGithubWebhookRoute
   '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsRoute
   '/projects/$projectId/issues': typeof ProjectsProjectIdIssuesRoute
+  '/projects/$projectId/messaging': typeof ProjectsProjectIdMessagingRoute
   '/projects/$projectId/pulls': typeof ProjectsProjectIdPullsRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsRoute
+  '/projects/$projectId/tasks': typeof ProjectsProjectIdTasksRoute
   '/projects/$projectId/team': typeof ProjectsProjectIdTeamRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/commits/$sha': typeof ProjectsProjectIdCommitsShaRoute
@@ -208,8 +227,10 @@ export interface FileRouteTypes {
     | '/api/public/github-webhook'
     | '/projects/$projectId/deployments'
     | '/projects/$projectId/issues'
+    | '/projects/$projectId/messaging'
     | '/projects/$projectId/pulls'
     | '/projects/$projectId/settings'
+    | '/projects/$projectId/tasks'
     | '/projects/$projectId/team'
     | '/projects/$projectId/'
     | '/projects/$projectId/commits/$sha'
@@ -228,8 +249,10 @@ export interface FileRouteTypes {
     | '/api/public/github-webhook'
     | '/projects/$projectId/deployments'
     | '/projects/$projectId/issues'
+    | '/projects/$projectId/messaging'
     | '/projects/$projectId/pulls'
     | '/projects/$projectId/settings'
+    | '/projects/$projectId/tasks'
     | '/projects/$projectId/team'
     | '/projects/$projectId'
     | '/projects/$projectId/commits/$sha'
@@ -249,8 +272,10 @@ export interface FileRouteTypes {
     | '/api/public/github-webhook'
     | '/projects/$projectId/deployments'
     | '/projects/$projectId/issues'
+    | '/projects/$projectId/messaging'
     | '/projects/$projectId/pulls'
     | '/projects/$projectId/settings'
+    | '/projects/$projectId/tasks'
     | '/projects/$projectId/team'
     | '/projects/$projectId/'
     | '/projects/$projectId/commits/$sha'
@@ -357,6 +382,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdTeamRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/tasks': {
+      id: '/projects/$projectId/tasks'
+      path: '/tasks'
+      fullPath: '/projects/$projectId/tasks'
+      preLoaderRoute: typeof ProjectsProjectIdTasksRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/settings': {
       id: '/projects/$projectId/settings'
       path: '/settings'
@@ -369,6 +401,13 @@ declare module '@tanstack/react-router' {
       path: '/pulls'
       fullPath: '/projects/$projectId/pulls'
       preLoaderRoute: typeof ProjectsProjectIdPullsRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/messaging': {
+      id: '/projects/$projectId/messaging'
+      path: '/messaging'
+      fullPath: '/projects/$projectId/messaging'
+      preLoaderRoute: typeof ProjectsProjectIdMessagingRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/issues': {
@@ -412,8 +451,10 @@ declare module '@tanstack/react-router' {
 interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdDeploymentsRoute: typeof ProjectsProjectIdDeploymentsRoute
   ProjectsProjectIdIssuesRoute: typeof ProjectsProjectIdIssuesRoute
+  ProjectsProjectIdMessagingRoute: typeof ProjectsProjectIdMessagingRoute
   ProjectsProjectIdPullsRoute: typeof ProjectsProjectIdPullsRoute
   ProjectsProjectIdSettingsRoute: typeof ProjectsProjectIdSettingsRoute
+  ProjectsProjectIdTasksRoute: typeof ProjectsProjectIdTasksRoute
   ProjectsProjectIdTeamRoute: typeof ProjectsProjectIdTeamRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
   ProjectsProjectIdCommitsShaRoute: typeof ProjectsProjectIdCommitsShaRoute
@@ -423,8 +464,10 @@ interface ProjectsProjectIdRouteChildren {
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdDeploymentsRoute: ProjectsProjectIdDeploymentsRoute,
   ProjectsProjectIdIssuesRoute: ProjectsProjectIdIssuesRoute,
+  ProjectsProjectIdMessagingRoute: ProjectsProjectIdMessagingRoute,
   ProjectsProjectIdPullsRoute: ProjectsProjectIdPullsRoute,
   ProjectsProjectIdSettingsRoute: ProjectsProjectIdSettingsRoute,
+  ProjectsProjectIdTasksRoute: ProjectsProjectIdTasksRoute,
   ProjectsProjectIdTeamRoute: ProjectsProjectIdTeamRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
   ProjectsProjectIdCommitsShaRoute: ProjectsProjectIdCommitsShaRoute,
@@ -450,3 +493,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

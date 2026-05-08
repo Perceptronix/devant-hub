@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, GitCommit, Rocket, GitPullRequest, Bug, Users, Settings } from "lucide-react";
+import { LayoutDashboard, GitCommit, Rocket, GitPullRequest, Bug, Users, Settings, MessageCircle, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Item = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean };
@@ -10,6 +10,8 @@ const ITEMS: Item[] = [
   { to: "/projects/$projectId/pulls", label: "Pull Requests", icon: GitPullRequest },
   { to: "/projects/$projectId/issues", label: "Issues", icon: Bug },
   { to: "/projects/$projectId/team", label: "Team", icon: Users },
+  { to: "/projects/$projectId/messaging", label: "Messages", icon: MessageCircle },
+  { to: "/projects/$projectId/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/projects/$projectId/settings", label: "Settings", icon: Settings },
 ];
 
@@ -50,22 +52,26 @@ export function ProjectSidebar({ projectId, name }: { projectId: string; name?: 
 export function ProjectMobileNav({ projectId }: { projectId: string }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <div className="md:hidden -mx-4 px-4 pb-3 overflow-x-auto scrollbar-thin">
-      <div className="flex gap-1.5 min-w-max">
+    <div className="md:hidden -mx-4 px-4 pb-4 overflow-x-auto scrollbar-thin">
+      <div className="flex gap-1 min-w-max">
         {ITEMS.map((it) => {
           const href = it.to.replace("$projectId", projectId);
           const active = it.exact ? path === href : path === href || path.startsWith(href + "/");
+          const Icon = it.icon;
           return (
             <Link
               key={it.to}
               to={it.to as any}
               params={{ projectId } as any}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs whitespace-nowrap border",
-                active ? "bg-primary/15 text-primary border-primary/40" : "border-border text-foreground/80"
+                "flex items-center gap-1.5 px-3 py-2 rounded-full text-xs whitespace-nowrap border transition-all font-medium",
+                active 
+                  ? "bg-primary/15 text-primary border-primary/40 shadow-sm shadow-primary/10" 
+                  : "border-border text-foreground/80 hover:bg-surface-elevated hover:border-border-strong"
               )}
             >
-              {it.label}
+              <Icon className="size-3.5 shrink-0" />
+              <span>{it.label}</span>
             </Link>
           );
         })}

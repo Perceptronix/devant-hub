@@ -59,32 +59,48 @@ export function AppSidebar() {
   );
 
   const ProfileBlock = ({ inline }: { inline?: boolean }) => (
-    <div className="border-t border-sidebar-border p-2">
-      <div className={cn("flex items-center gap-2 px-1.5 py-1.5 rounded-lg", inline && "bg-sidebar-accent/40")}>
-        <Avatar className="size-8">
+    <div className="border-t border-sidebar-border p-3 space-y-2">
+      <div className={cn("flex items-center gap-3 px-2 py-2 rounded-lg transition-colors", inline && "bg-sidebar-accent/40")}>
+        <Avatar className="size-9 shrink-0">
           {avatar && <AvatarImage src={avatar} />}
-          <AvatarFallback className="bg-primary/20 text-xs">{initials}</AvatarFallback>
+          <AvatarFallback className="bg-primary/20 text-xs font-semibold">{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-medium truncate">{name}</div>
-          <div className="text-[10px] text-muted-foreground truncate">{user ? "Online" : "Not signed in"}</div>
+          <div className="text-xs font-semibold truncate text-sidebar-foreground">{name}</div>
+          <div className="text-[11px] text-muted-foreground truncate">{user ? "Online" : "Not signed in"}</div>
         </div>
-        {expanded || inline ? <ChevronsUpDown className="size-3.5 text-muted-foreground" /> : null}
+        {expanded || inline ? <ChevronsUpDown className="size-3.5 text-muted-foreground shrink-0" /> : null}
       </div>
-      <div className="mt-1 space-y-0.5">
-        <Link to="/settings" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-sidebar-accent/60">
-          <UserIcon className="size-4" /> Profile
-        </Link>
-        {user ? (
-          <button onClick={() => signOut()} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-sidebar-accent/60 text-danger">
-            <LogOut className="size-4" /> Sign out
-          </button>
-        ) : (
-          <button onClick={() => signInWithGitHub()} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-sidebar-accent/60 text-primary">
-            <UserIcon className="size-4" /> Sign in with GitHub
-          </button>
-        )}
-      </div>
+      
+      {expanded || inline ? (
+        <div className="space-y-1 pt-1">
+          <Link 
+            to="/settings" 
+            onClick={() => setMobileOpen(false)} 
+            className="flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors group"
+          >
+            <UserIcon className="size-4 group-hover:text-primary" /> 
+            <span>Profile & Settings</span>
+          </Link>
+          {user ? (
+            <button 
+              onClick={() => { signOut(); setMobileOpen(false); }}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-danger hover:bg-danger/10 transition-colors group"
+            >
+              <LogOut className="size-4" /> 
+              <span>Sign Out</span>
+            </button>
+          ) : (
+            <button 
+              onClick={() => { signInWithGitHub(); setMobileOpen(false); }}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-primary hover:bg-primary/10 transition-colors group"
+            >
+              <UserIcon className="size-4" /> 
+              <span>Sign in with GitHub</span>
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 

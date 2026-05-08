@@ -98,6 +98,46 @@
   --sidebar-ring: oklch(0.62 0.22 285);
 }
 
+/* Light theme — applied when .light class is on document root */
+.light {
+  --background: oklch(0.98 0.01 280);           /* #F8F8FF light background */
+  --foreground: oklch(0.15 0.02 280);           /* #252530 dark text */
+  --surface: oklch(0.94 0.01 280);              /* #F0F0F5 */
+  --surface-elevated: oklch(1.00 0 0);          /* #FFFFFF pure white */
+  --card: oklch(0.96 0.01 280);
+  --card-foreground: oklch(0.15 0.02 280);
+  --popover: oklch(1.00 0 0);
+  --popover-foreground: oklch(0.15 0.02 280);
+
+  --primary: oklch(0.54 0.20 285);              /* #5847E0 slightly darker purple */
+  --primary-foreground: oklch(0.99 0 0);       /* white text on primary */
+  --cyan: oklch(0.65 0.16 220);                /* #0099CC darker cyan */
+  --success: oklch(0.70 0.18 155);              /* #00CC66 darker green */
+  --danger: oklch(0.55 0.22 18);                /* #DD2244 darker red */
+  --warning: oklch(0.70 0.16 80);               /* #FFAA00 darker orange */
+
+  --secondary: oklch(0.90 0.02 280);
+  --secondary-foreground: oklch(0.15 0.02 280);
+  --muted: oklch(0.88 0.02 280);
+  --muted-foreground: oklch(0.50 0.03 280);    /* #6666AA */
+  --accent: oklch(0.54 0.20 285 / 0.12);
+  --accent-foreground: oklch(0.15 0.02 280);
+  --destructive: oklch(0.55 0.22 18);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.88 0.01 280);               /* #E0E0E8 light border */
+  --border-strong: oklch(0.80 0.02 280);        /* #CCCCDD darker border */
+  --input: oklch(0.94 0.01 280);
+  --ring: oklch(0.54 0.20 285);
+
+  --sidebar: oklch(0.96 0.01 280);
+  --sidebar-foreground: oklch(0.30 0.02 280);
+  --sidebar-accent: oklch(0.54 0.20 285 / 0.12);
+  --sidebar-accent-foreground: oklch(0.15 0.02 280);
+  --sidebar-border: oklch(0.88 0.01 280);
+  --sidebar-ring: oklch(0.54 0.20 285);
+}
+
 .dark {
   /* Same as :root — app is dark-first */
   --background: oklch(0.12 0.02 280);

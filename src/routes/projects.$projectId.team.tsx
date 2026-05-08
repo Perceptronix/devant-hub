@@ -41,6 +41,23 @@ function Team() {
           .not("linked_user_id", "is", null);
         const linkedSet = new Set((linkedMembers ?? []).map((row: any) => String(row.github_login).toLowerCase()));
 
+        // If this project belongs to an organization, also treat accepted org_members
+        // as linked so team view and linked badges reflect organization membership.
+        if (project.org_id) {
+          try {
+            const { data: orgLinked } = await supabase
+              .from("org_members")
+              .select("github_login")
+              .eq("org_id", project.org_id)
+              .eq("status", "accepted");
+            for (const row of orgLinked ?? []) {
+              if (row && row.github_login) linkedSet.add(String(row.github_login).toLowerCase());
+            }
+          } catch (e) {
+            console.error("Failed to load org-linked members for team view:", e);
+          }
+        }
+
         const [repo, collabs, contribs, commits] = await Promise.all([
           getRepo(token, project.owner, project.repo),
           listCollaborators(token, project.owner, project.repo).catch(() => []),

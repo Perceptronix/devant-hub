@@ -22,17 +22,24 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
   if (!userId) return [];
   try {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    const [{ data, error }, { data: orgs, error: orgError }] = await Promise.all([
+      supabase
       .from("projects")
       .select(
         "id, name, description, github_repo_owner, github_repo_name, default_branch, is_private, github_repo_id, org_id"
       )
       .eq("created_by", userId)
       .order("created_at", { ascending: false });
-    if (error) {
+      supabase
+        .from("organizations")
+        .select("id, github_org_login")
+    ]);
+    if (error || orgError) {
       console.error("fetchImportedProjects", error);
+      if (orgError) console.error("fetchImportedProjects orgs", orgError);
       return [];
     }
+    const orgIdByLogin = new Map((orgs ?? []).map((org: any) => [String(org.github_org_login ?? "").toLowerCase(), org.id] as const));
     return (data ?? []).map((r: any) => ({
       id: r.id,
       name: r.name,
@@ -42,7 +49,7 @@ export async function fetchImportedProjects(userId: string): Promise<ImportedPro
       defaultBranch: r.default_branch,
       private: r.is_private,
       github_repo_id: r.github_repo_id,
-      org_id: r.org_id,
+      org_id: r.org_id ?? orgIdByLogin.get(String(r.github_repo_owner ?? "").toLowerCase()),
     }));
   } catch (err) {
     console.error("fetchImportedProjects err", err);
@@ -63,6 +70,7 @@ export async function insertImportedProject(userId: string, project: ImportedPro
       github_repo_id: project.github_repo_id ?? null,
       default_branch: project.defaultBranch ?? "main",
       is_private: project.private ?? false,
+      org_id: project.org_id ?? null,
       created_by: userId,
     };
     const { data, error } = await supabase.from("projects").insert(insert).select().single();
@@ -80,6 +88,7 @@ export async function insertImportedProject(userId: string, project: ImportedPro
       defaultBranch: r.default_branch,
       private: r.is_private,
       github_repo_id: r.github_repo_id,
+      org_id: r.org_id,
     };
   } catch (err) {
     console.error("insertImportedProject err", err);

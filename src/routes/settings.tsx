@@ -76,6 +76,8 @@ interface Department {
 function Settings() {
   const { user } = useAuth();
   const meta = (user?.user_metadata as Record<string, string> | undefined) ?? {};
+  const currentGitHubName = meta.user_name || meta.preferred_username || user?.email || "";
+  const currentGitHubAvatar = meta.avatar_url || "";
   const [theme, setTheme] = useTheme();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
@@ -655,75 +657,85 @@ function Settings() {
                     <div className="text-sm text-muted-foreground">No members yet</div>
                   ) : (
                     <div className="space-y-2">
-                      {members.map((member) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border"
-                        >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <Avatar className="size-9 shrink-0">
-                              <AvatarImage src={member.avatar_url ?? undefined} />
-                              <AvatarFallback>
-                                {(
-                                  member.display_name || member.github_login || member.invited_email || member.role || "?"
-                                )
-                                  .slice(0, 1)
-                                  .toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <div className="font-medium text-sm truncate">
-                                {member.status === "pending"
-                                  ? member.invited_email || member.display_name || member.github_login || member.role
-                                  : member.display_name || member.github_login || member.invited_email || member.role}
-                              </div>
-                              {member.github_login && member.status === "accepted" && (
-                                <div className="text-xs text-muted-foreground truncate">@{member.github_login}</div>
-                              )}
-                              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <Badge
-                                  variant={
-                                    member.status === "accepted"
-                                      ? "default"
-                                      : member.status === "pending"
-                                        ? "secondary"
-                                        : "destructive"
-                                  }
-                                >
-                                  {member.status}
-                                </Badge>
-                                {member.user_id && member.status === "accepted" && (
-                                  <Badge variant="outline">Linked</Badge>
+                      {members.map((member) => {
+                        const isCurrentUser = member.user_id && member.user_id === user?.id;
+                        const memberName = isCurrentUser
+                          ? currentGitHubName ||
+                            member.display_name ||
+                            member.github_login ||
+                            member.invited_email ||
+                            member.role
+                          : member.status === "pending"
+                            ? member.invited_email || member.display_name || member.github_login || member.role
+                            : member.display_name || member.github_login || member.invited_email || member.role;
+                        const memberAvatar = isCurrentUser
+                          ? currentGitHubAvatar
+                          : member.avatar_url ?? undefined;
+
+                        return (
+                          <div
+                            key={member.id}
+                            className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <Avatar className="size-9 shrink-0">
+                                <AvatarImage src={memberAvatar} />
+                                <AvatarFallback>
+                                  {(memberName || "?").slice(0, 1).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-sm truncate">{memberName}</div>
+                                {member.github_login && member.status === "accepted" && (
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    @{member.github_login}
+                                  </div>
                                 )}
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  <Badge
+                                    variant={
+                                      member.status === "accepted"
+                                        ? "default"
+                                        : member.status === "pending"
+                                          ? "secondary"
+                                          : "destructive"
+                                    }
+                                  >
+                                    {member.status}
+                                  </Badge>
+                                  {member.user_id && member.status === "accepted" && (
+                                    <Badge variant="outline">Linked</Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                            {isOrgOwner && member.role !== "owner" && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button className="text-muted-foreground hover:text-danger">
+                                    <Trash2 className="size-4" />
+                                  </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogTitle>Remove Member?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    They will lose access to this organization.
+                                  </AlertDialogDescription>
+                                  <div className="flex gap-3 justify-end">
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleRemoveMember(member.id)}
+                                      className="bg-danger hover:bg-danger/90"
+                                    >
+                                      Remove
+                                    </AlertDialogAction>
+                                  </div>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                           </div>
-                          {isOrgOwner && member.role !== "owner" && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <button className="text-muted-foreground hover:text-danger">
-                                  <Trash2 className="size-4" />
-                                </button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogTitle>Remove Member?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  They will lose access to this organization.
-                                </AlertDialogDescription>
-                                <div className="flex gap-3 justify-end">
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleRemoveMember(member.id)}
-                                    className="bg-danger hover:bg-danger/90"
-                                  >
-                                    Remove
-                                  </AlertDialogAction>
-                                </div>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </Card>

@@ -5,6 +5,7 @@ import { Plus, GitPullRequest, Bug, Clock, RefreshCw, Unlink, Loader2 } from "lu
 import { useState, useEffect } from "react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { listUserRepos } from "@/lib/github/client";
+import { getSupabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -64,10 +65,19 @@ function Projects() {
     if (!user) return;
     setImportingId(r.id);
     try {
+      const supabase = getSupabase();
+      const ownerLogin = String(r.owner?.login ?? "").toLowerCase();
+      const { data: orgRows } = await supabase
+        .from("organizations")
+        .select("id, github_org_login")
+        .eq("github_org_login", ownerLogin)
+        .limit(1);
+      const orgId = orgRows?.[0]?.id ?? undefined;
+
       const imported: ImportedProject = {
         id: String(r.id), name: r.name, owner: r.owner?.login ?? "", repo: r.name,
         description: r.description ?? "", defaultBranch: r.default_branch ?? "main",
-        private: Boolean(r.private), github_repo_id: r.id,
+        private: Boolean(r.private), github_repo_id: r.id, org_id: orgId,
       };
       const inserted = await insertImportedProject(user.id, imported);
       if (inserted) {

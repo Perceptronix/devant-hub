@@ -59,6 +59,9 @@ function Tasks() {
   const { projectId } = useParams({ from: "/projects/$projectId/tasks" });
   const { project } = useProject(projectId);
   const { user } = useAuth();
+  const currentUserMeta = (user?.user_metadata as Record<string, string> | undefined) ?? {};
+  const currentUserGithubLogin = currentUserMeta.user_name || currentUserMeta.preferred_username || user?.email || "";
+  const currentUserAvatar = currentUserMeta.avatar_url || undefined;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -115,9 +118,18 @@ function Tasks() {
             // Map org member user_ids to team member format
             assignableMembers = (orgMembers || []).map((row: any) => ({
               linked_user_id: row.user_id,
-              github_login: row.github_login || row.display_name || row.user_id.slice(0, 8),
-              name: row.display_name || row.github_login || null,
-              avatar_url: row.avatar_url || null,
+              github_login:
+                (row.user_id === user?.id ? currentUserGithubLogin : null) ||
+                row.github_login ||
+                row.display_name ||
+                row.user_id.slice(0, 8),
+              name:
+                (row.user_id === user?.id ? currentUserGithubLogin : null) ||
+                row.display_name ||
+                row.github_login ||
+                null,
+              avatar_url:
+                (row.user_id === user?.id ? currentUserAvatar : null) || row.avatar_url || null,
             })) as TeamMember[];
           }
         } else {
@@ -141,8 +153,7 @@ function Tasks() {
           }
         }
 
-        const currentUserLabel = (user?.user_metadata as any)?.user_name || user?.email || "Unknown";
-        const currentUserAvatar = (user?.user_metadata as any)?.avatar_url || undefined;
+        const currentUserLabel = currentUserGithubLogin || "Unknown";
 
         const memberByUserId = new Map(
           assignableMembers

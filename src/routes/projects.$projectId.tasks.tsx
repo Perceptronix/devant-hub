@@ -67,10 +67,16 @@ function Tasks() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newTask, setNewTask] = useState({
+  const [newTask, setNewTask] = useState<{
+    title: string;
+    description: string;
+    priority: Task["priority"];
+    assigned_to_id: string;
+    due_date: string;
+  }>({
     title: "",
     description: "",
-    priority: "medium" as const,
+    priority: "medium",
     assigned_to_id: "",
     due_date: "",
   });

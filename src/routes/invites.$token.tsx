@@ -14,6 +14,7 @@ type Invite = {
   invitedEmail: string;
   invitedAt: string;
   status: string;
+  inviteToken?: string;
 };
 
 export const Route = createFileRoute("/invites/$token")({

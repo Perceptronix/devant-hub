@@ -214,6 +214,23 @@ function Tasks() {
     };
   }, [project, tick]);
 
+  // Realtime: invalidate the local list whenever tasks change for this project.
+  useEffect(() => {
+    if (!project) return;
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel(`tasks-${project.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `project_id=eq.${project.id}` },
+        () => setTick((n) => n + 1),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [project]);
+
   const handleCreate = async () => {
     if (!newTask.title.trim() || !user || !project) {
       toast.error("Title is required");

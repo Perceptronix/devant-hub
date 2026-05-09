@@ -192,6 +192,61 @@ function Messaging() {
     };
   }, [project, tick]);
 
+  // Realtime: append new messages from any sender to the live list.
+  useEffect(() => {
+    if (!project) return;
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel(`messages-${project.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `project_id=eq.${project.id}` },
+        (payload) => {
+          const row = payload.new as {
+            id: string;
+            sender_id: string;
+            content: string;
+            created_at: string;
+            message_type?: string;
+          };
+          // Skip if it's our own optimistic insert (already in state).
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === row.id)) return prev;
+            const member = teamMembers.find((m) => m.linked_user_id === row.sender_id);
+            const isCurrentUser = row.sender_id === user?.id;
+            return [
+              ...prev,
+              {
+                id: row.id,
+                sender_id: row.sender_id,
+                sender_name:
+                  (isCurrentUser
+                    ? (user?.user_metadata as Record<string, string> | undefined)?.user_name ||
+                      user?.email
+                    : null) ||
+                  member?.name ||
+                  member?.github_login ||
+                  row.sender_id.slice(0, 8),
+                sender_avatar:
+                  (isCurrentUser
+                    ? (user?.user_metadata as Record<string, string> | undefined)?.avatar_url
+                    : null) ||
+                  member?.avatar_url ||
+                  undefined,
+                content: row.content,
+                created_at: row.created_at,
+                message_type: row.message_type === "system" ? "system" : "text",
+              },
+            ];
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [project, teamMembers, user]);
+
   const handleSend = async () => {
     if (!input.trim() || !user || !project) return;
 

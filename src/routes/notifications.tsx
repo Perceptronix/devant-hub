@@ -43,7 +43,7 @@ function Notifications() {
         const { data, error } = await supabase
           .from("org_members")
           .select("id, org_id, status, invited_at, organizations(name)")
-          .eq("invited_email", user.email.toLowerCase())
+          .eq("invited_email", (user.email ?? "").toLowerCase())
           .eq("status", "pending")
           .order("invited_at", { ascending: false });
 

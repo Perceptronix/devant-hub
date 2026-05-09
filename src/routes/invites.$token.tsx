@@ -14,6 +14,7 @@ type Invite = {
   invitedEmail: string;
   invitedAt: string;
   status: string;
+  inviteToken?: string;
 };
 
 export const Route = createFileRoute("/invites/$token")({
@@ -62,22 +63,42 @@ function InvitePage() {
     setAccepting(true);
     try {
       const supabase = getSupabase();
-      const { error } = await supabase
-        .from("org_members")
-        .update({
-          status: "accepted",
-          user_id: user.id,
-          joined_at: new Date().toISOString(),
-          display_name: displayName,
-          github_login: githubLogin,
-          avatar_url: userMeta.avatar_url ?? null,
-        })
-        .eq("id", invite.id);
+      // Atomic accept via RPC: flips status, sets user_id, links project_team_members.
+      const { error: rpcError } = await supabase.rpc("accept_org_invite", {
+        _token: (invite as Invite & { inviteToken?: string }).inviteToken ?? token,
+        _display_name: displayName,
+        _github_login: githubLogin,
+        _avatar_url: userMeta.avatar_url ?? null,
+      });
 
-      if (error) throw error;
+      if (rpcError) {
+        // Fallback for environments where the migration hasn't been applied yet.
+        console.warn("accept_org_invite RPC failed, falling back:", rpcError);
+        const { error } = await supabase
+          .from("org_members")
+          .update({
+            status: "accepted",
+            user_id: user.id,
+            joined_at: new Date().toISOString(),
+            display_name: displayName,
+            github_login: githubLogin,
+            avatar_url: userMeta.avatar_url ?? null,
+          })
+          .eq("id", invite.id);
+        if (error) throw error;
+      }
+
+      // Trigger a global sync so projects/tasks/team queries refresh.
+      try {
+        const { emitSync } = await import("@/lib/sync");
+        emitSync();
+      } catch {
+        /* ignore */
+      }
 
       toast.success(`You joined ${invite.orgName}.`);
-      navigate({ to: "/notifications" });
+      // Land inside the org dashboard (projects list) instead of /notifications.
+      navigate({ to: "/projects" });
     } catch (error) {
       console.error("Failed to accept invite:", error);
       toast.error("Failed to accept invitation");

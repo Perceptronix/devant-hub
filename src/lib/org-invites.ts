@@ -110,6 +110,7 @@ export const getOrgInviteByToken = createServerFn({ method: "POST" })
       invitedEmail: invite.invited_email,
       invitedAt: invite.invited_at,
       status: invite.status,
+      inviteToken: invite.invite_token,
     };
   });
 

@@ -67,10 +67,16 @@ function Tasks() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newTask, setNewTask] = useState({
+  const [newTask, setNewTask] = useState<{
+    title: string;
+    description: string;
+    priority: Task["priority"];
+    assigned_to_id: string;
+    due_date: string;
+  }>({
     title: "",
     description: "",
-    priority: "medium" as const,
+    priority: "medium",
     assigned_to_id: "",
     due_date: "",
   });
@@ -207,6 +213,23 @@ function Tasks() {
       mounted = false;
     };
   }, [project, tick]);
+
+  // Realtime: invalidate the local list whenever tasks change for this project.
+  useEffect(() => {
+    if (!project) return;
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel(`tasks-${project.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `project_id=eq.${project.id}` },
+        () => setTick((n) => n + 1),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [project]);
 
   const handleCreate = async () => {
     if (!newTask.title.trim() || !user || !project) {

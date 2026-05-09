@@ -26,6 +26,22 @@ interface TeamMember {
   avatar_url: string | null;
 }
 
+async function resolveProjectOrgId(supabase: ReturnType<typeof getSupabase>, project: any) {
+  if (project?.org_id) return project.org_id;
+  if (!project?.owner) return null;
+  const ownerKey = String(project.owner).toLowerCase();
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("id")
+    .or(`github_org_login.ilike.${ownerKey},slug.ilike.${ownerKey}`)
+    .limit(1);
+  if (error) {
+    console.error("Failed to infer org ID for messaging:", error);
+    return null;
+  }
+  return data?.[0]?.id ?? null;
+}
+
 export const Route = createFileRoute("/projects/$projectId/messaging")({
   component: Messaging,
 });
@@ -62,18 +78,7 @@ function Messaging() {
       setLoading(true);
       try {
         const supabase = getSupabase();
-        let projectOrgId = project.org_id;
-        if (!projectOrgId && project.owner) {
-          const ownerKey = project.owner.toLowerCase();
-          const { data: matchingOrgs, error: matchingOrgsError } = await supabase
-            .from("organizations")
-            .select("id")
-            .or(`github_org_login.ilike.${ownerKey},slug.ilike.${ownerKey}`)
-            .limit(1);
-          if (!matchingOrgsError && matchingOrgs?.length > 0) {
-            projectOrgId = matchingOrgs[0].id;
-          }
-        }
+        const projectOrgId = await resolveProjectOrgId(supabase, project);
 
         const projectTeamPromise = supabase
           .from("project_team_members")
@@ -89,6 +94,15 @@ function Messaging() {
               .eq("status", "accepted")
           : Promise.resolve({ data: [], error: null } as any);
 
+        const messageQuery = supabase
+          .from("messages")
+          .select("id, sender_id, content, created_at, message_type")
+          .eq("project_id", project.id)
+          .order("created_at", { ascending: true });
+        if (projectOrgId) {
+          messageQuery.eq("org_id", projectOrgId);
+        }
+
         const [
           { data: memberRows, error: memberError },
           { data: orgMemberRows, error: orgMemberError },
@@ -96,11 +110,7 @@ function Messaging() {
         ] = await Promise.all([
           projectTeamPromise,
           orgMembersPromise,
-          supabase
-            .from("messages")
-            .select("id, sender_id, content, created_at, message_type")
-            .eq("project_id", project.id)
-            .order("created_at", { ascending: true }),
+          messageQuery,
         ]);
 
         if (!mounted) return;
@@ -196,54 +206,69 @@ function Messaging() {
   useEffect(() => {
     if (!project) return;
     const supabase = getSupabase();
-    const channel = supabase
-      .channel(`messages-${project.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `project_id=eq.${project.id}` },
-        (payload) => {
-          const row = payload.new as {
-            id: string;
-            sender_id: string;
-            content: string;
-            created_at: string;
-            message_type?: string;
-          };
-          // Skip if it's our own optimistic insert (already in state).
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === row.id)) return prev;
-            const member = teamMembers.find((m) => m.linked_user_id === row.sender_id);
-            const isCurrentUser = row.sender_id === user?.id;
-            return [
-              ...prev,
-              {
-                id: row.id,
-                sender_id: row.sender_id,
-                sender_name:
-                  (isCurrentUser
-                    ? (user?.user_metadata as Record<string, string> | undefined)?.user_name ||
-                      user?.email
-                    : null) ||
-                  member?.name ||
-                  member?.github_login ||
-                  row.sender_id.slice(0, 8),
-                sender_avatar:
-                  (isCurrentUser
-                    ? (user?.user_metadata as Record<string, string> | undefined)?.avatar_url
-                    : null) ||
-                  member?.avatar_url ||
-                  undefined,
-                content: row.content,
-                created_at: row.created_at,
-                message_type: row.message_type === "system" ? "system" : "text",
-              },
-            ];
-          });
-        },
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | undefined;
+
+    const setupChannel = async () => {
+      const projectOrgId = await resolveProjectOrgId(supabase, project);
+      const filter = projectOrgId ? `org_id=eq.${projectOrgId}` : `project_id=eq.${project.id}`;
+      channel = supabase
+        .channel(`messages-${project.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter,
+          },
+          (payload) => {
+            const row = payload.new as {
+              id: string;
+              sender_id: string;
+              content: string;
+              created_at: string;
+              message_type?: string;
+            };
+            // Skip if it's our own optimistic insert (already in state).
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === row.id)) return prev;
+              const member = teamMembers.find((m) => m.linked_user_id === row.sender_id);
+              const isCurrentUser = row.sender_id === user?.id;
+              return [
+                ...prev,
+                {
+                  id: row.id,
+                  sender_id: row.sender_id,
+                  sender_name:
+                    (isCurrentUser
+                      ? (user?.user_metadata as Record<string, string> | undefined)?.user_name ||
+                        user?.email
+                      : null) ||
+                    member?.name ||
+                    member?.github_login ||
+                    row.sender_id.slice(0, 8),
+                  sender_avatar:
+                    (isCurrentUser
+                      ? (user?.user_metadata as Record<string, string> | undefined)?.avatar_url
+                      : null) ||
+                    member?.avatar_url ||
+                    undefined,
+                  content: row.content,
+                  created_at: row.created_at,
+                  message_type: row.message_type === "system" ? "system" : "text",
+                },
+              ];
+            });
+          },
+        )
+        .subscribe();
+    };
+
+    void setupChannel();
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [project, teamMembers, user]);
 
@@ -256,10 +281,16 @@ function Messaging() {
 
     try {
       const supabase = getSupabase();
+      const projectOrgId = await resolveProjectOrgId(supabase, project);
+      if (!projectOrgId) {
+        throw new Error("Unable to resolve organization for this project.");
+      }
+
       const { data, error } = await supabase
         .from("messages")
         .insert({
           project_id: project.id,
+          org_id: projectOrgId,
           sender_id: user.id,
           content,
           message_type: "text",

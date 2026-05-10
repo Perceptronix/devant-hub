@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { AppShell } from "@/components/AppShell";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
+// Routes that render without the app shell (sidebar/topbar)
 const STANDALONE_ROUTES = [
   "/login",
   "/onboarding",
@@ -21,6 +22,10 @@ const STANDALONE_ROUTES = [
   "/terms-of-service",
   "/invites",
 ];
+
+// The index route ("/") manages its own layout — landing for guests,
+// dashboard for authed users — so root must NOT wrap it in AppShell.
+const ROOT_SELF_LAYOUT = ["/"];
 
 function NotFoundComponent() {
   return (

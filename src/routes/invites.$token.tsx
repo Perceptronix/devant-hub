@@ -95,7 +95,7 @@ function InvitePage() {
       }
 
       toast.success(`You joined ${invite.orgName}.`);
-      navigate("/projects");
+      navigate({ to: "/projects" });
     } catch (error) {
       console.error("Failed to accept invite:", error);
       toast.error("Failed to accept invitation");
@@ -115,7 +115,7 @@ function InvitePage() {
         .eq("invite_token", token);
       if (error) throw error;
       toast.success("Invitation declined.");
-      navigate("/");
+      navigate({ to: "/" });
     } catch (error) {
       console.error("Failed to decline invite:", error);
       toast.error("Failed to decline invitation");

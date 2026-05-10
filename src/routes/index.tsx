@@ -8,6 +8,7 @@ import { fetchImportedProjects, type ImportedProject } from "@/lib/imported-proj
 import { listCommits, listPulls, listIssues, listDeployments } from "@/lib/github/client";
 import { StatCard } from "@/components/StatCard";
 import { useSyncListener } from "@/lib/sync";
+import { useCurrentOrg } from "@/lib/current-org";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -122,6 +123,7 @@ function Landing() {
 
 function Dashboard() {
   const { user } = useAuth();
+  const { currentOrg } = useCurrentOrg();
   const [projects, setProjects] = useState<ImportedProject[]>([]);
   const [stats, setStats] = useState({ commits: 0, prs: 0, issues: 0, deploys: 0 });
   const [loading, setLoading] = useState(false);
@@ -132,7 +134,10 @@ function Dashboard() {
     let mounted = true;
     (async () => {
       if (!user) { setProjects([]); return; }
-      const list = await fetchImportedProjects(user.id);
+      const all = await fetchImportedProjects(user.id);
+      const list = currentOrg
+        ? all.filter((p) => !p.org_id || p.org_id === currentOrg.id)
+        : all;
       if (!mounted) return;
       setProjects(list);
       const token = getGitHubToken(user);
@@ -158,7 +163,7 @@ function Dashboard() {
       }
     })();
     return () => { mounted = false; };
-  }, [user, tick]);
+  }, [user, tick, currentOrg?.id]);
 
   if (projects.length === 0) {
     return (

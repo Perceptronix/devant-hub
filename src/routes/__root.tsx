@@ -120,7 +120,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const standalone = STANDALONE_ROUTES.some((p) => path === p || path.startsWith(p + "/"));
+  const standalone =
+    ROOT_SELF_LAYOUT.includes(path) ||
+    STANDALONE_ROUTES.some((p) => path === p || path.startsWith(p + "/"));
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {

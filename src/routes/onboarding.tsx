@@ -159,12 +159,14 @@ function Onboarding() {
     setIsInviting(true);
     try {
       const result = await createOrgInvite({
-        orgId,
-        invitedEmail: email,
-        inviterId: user.id,
-        inviterName: (user.user_metadata as any)?.full_name || user.email || "DevANT",
-        inviterEmail: (user.email || "").toLowerCase(),
-        baseUrl: window.location.origin,
+        data: {
+          orgId,
+          invitedEmail: email,
+          inviterId: user.id,
+          inviterName: (user.user_metadata as any)?.full_name || user.email || "DevANT",
+          inviterEmail: (user.email || "").toLowerCase(),
+          baseUrl: window.location.origin,
+        },
       });
       setPendingInvites((current) => [
         ...current,
@@ -181,7 +183,7 @@ function Onboarding() {
   };
 
   const handleFinish = () => {
-    navigate("/projects");
+    navigate({ to: "/projects" });
   };
 
   return (

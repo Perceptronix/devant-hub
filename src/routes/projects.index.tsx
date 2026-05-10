@@ -93,7 +93,7 @@ function Projects() {
       };
       const inserted = await insertImportedProject(user.id, imported);
       if (inserted) {
-        setLinkedProjects((cur) => [inserted, ...cur.filter((p) => !(p.owner === inserted.owner && p.repo === inserted.repo))]);
+        setAllProjects((cur: ImportedProject[]) => [inserted, ...cur.filter((p: ImportedProject) => !(p.owner === inserted.owner && p.repo === inserted.repo))]);
       }
     } finally {
       setImportingId(null);
@@ -104,7 +104,7 @@ function Projects() {
     if (!user) return;
     setDisconnectingId(p.id);
     const ok = await removeImportedProject(user.id, p.id);
-    if (ok) setLinkedProjects((cur) => cur.filter((x) => x.id !== p.id));
+    if (ok) setAllProjects((cur: ImportedProject[]) => cur.filter((x: ImportedProject) => x.id !== p.id));
     setDisconnectingId(null);
   }
 

@@ -3,6 +3,7 @@ import { useRouterState, Link, useNavigate } from "@tanstack/react-router";
 import { Search, Bell, RefreshCw, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandPalette } from "@/components/CommandPalette";
+import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { emitSync } from "@/lib/sync";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ export function TopBar() {
           </div>
         ))}
       </div>
+      <div className="md:ml-2"><OrgSwitcher /></div>
       <div className="flex-1" />
 
       <button

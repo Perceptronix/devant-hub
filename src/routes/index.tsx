@@ -1,14 +1,29 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/PageHeader";
-import { Plus, GitCommit, GitPullRequest, Bug, Rocket, FolderGit2 } from "lucide-react";
+import {
+  Plus,
+  GitCommit,
+  GitPullRequest,
+  Bug,
+  Rocket,
+  FolderGit2,
+  ArrowRight,
+  Sparkles,
+  Activity,
+  Users2,
+  Github,
+  Zap,
+  ShieldCheck,
+  Workflow,
+} from "lucide-react";
 import { useAuth, getGitHubToken, signInWithGitHub } from "@/lib/auth";
 import { fetchImportedProjects, type ImportedProject } from "@/lib/imported-projects";
 import { listCommits, listPulls, listIssues, listDeployments } from "@/lib/github/client";
-import { StatCard } from "@/components/StatCard";
 import { useSyncListener } from "@/lib/sync";
 import { useCurrentOrg } from "@/lib/current-org";
+import { AppShell } from "@/components/AppShell";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,122 +33,255 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { user } = useAuth();
-  return user ? <Dashboard /> : <Landing />;
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="size-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) return <Landing />;
+
+  return (
+    <AppShell>
+      <Dashboard />
+    </AppShell>
+  );
 }
+
+/* ------------------------------ LANDING ------------------------------ */
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background text-white">
+    <div className="min-h-screen bg-[#05060d] text-white">
       <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(circle_at_top_left,_rgba(108,99,255,0.35),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(0,212,255,0.18),_transparent_45%)]" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-80 bg-[radial-gradient(circle_at_bottom_left,_rgba(0,212,255,0.14),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(108,99,255,0.12),_transparent_35%)]" />
-        <div className="relative mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-14">
-          <nav className="flex flex-wrap items-center justify-between gap-4 pb-6">
-            <div className="flex items-center gap-3">
-              <div className="size-12 rounded-3xl bg-primary/15 text-primary flex items-center justify-center font-semibold">D</div>
-              <span className="font-semibold tracking-tight">DevANT</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">Sign in</Link>
-              <Button onClick={() => signInWithGitHub()} className="h-11 rounded-full px-6 text-sm">Get started</Button>
-            </div>
-          </nav>
+        {/* ambient glows */}
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute top-[-10%] left-[10%] h-[500px] w-[500px] rounded-full bg-primary/25 blur-[140px]" />
+          <div className="absolute top-[20%] right-[-5%] h-[400px] w-[400px] rounded-full bg-cyan-500/20 blur-[120px]" />
+          <div className="absolute bottom-[-10%] left-[40%] h-[400px] w-[400px] rounded-full bg-emerald-500/15 blur-[140px]" />
+        </div>
 
-          <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+        {/* nav */}
+        <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
+          <Logo />
+          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
+            <a href="#product" className="hover:text-foreground transition">Product</a>
+            <a href="#features" className="hover:text-foreground transition">Features</a>
+            <a href="#pricing" className="hover:text-foreground transition">Pricing</a>
+          </nav>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/login"
+              className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline"
+            >
+              Sign in
+            </Link>
+            <Button
+              onClick={() => signInWithGitHub()}
+              className="h-10 rounded-full px-5 text-sm gap-2"
+            >
+              <Github className="size-4" /> Start free
+            </Button>
+          </div>
+        </header>
+
+        {/* hero */}
+        <section className="mx-auto max-w-7xl px-6 pt-10 pb-24 lg:px-10 lg:pt-16">
+          <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div className="space-y-8">
-              <span className="inline-flex rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">GitHub-native dev intelligence</span>
-              <h1 className="text-5xl font-display font-bold leading-tight tracking-[-0.03em] sm:text-6xl">Your entire engineering org, one dashboard.</h1>
-              <p className="max-w-2xl text-lg text-muted-foreground">DevANT connects GitHub repos, analyzes every commit with AI, tracks deployments, and gives your whole team one place to ship faster.</p>
-              <div className="flex flex-wrap gap-4">
-                <Button size="lg" onClick={() => signInWithGitHub()} className="gap-2 bg-success text-black hover:bg-success/90">Start free with GitHub</Button>
-                <Link to="/login" className="inline-flex h-12 items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 text-sm font-semibold text-white/90 transition hover:bg-white/10">See how it works</Link>
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                <Sparkles className="size-3.5" /> GitHub-native dev intelligence
+              </span>
+              <h1 className="font-display text-5xl font-bold leading-[1.05] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
+                Your entire engineering org,
+                <span className="block bg-gradient-to-r from-primary via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+                  one dashboard.
+                </span>
+              </h1>
+              <p className="max-w-xl text-lg text-muted-foreground">
+                DevANT connects your GitHub repos, analyzes every commit with AI, and gives your
+                whole team one place to ship faster — with realtime tasks, deployments, and DORA
+                metrics.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  size="lg"
+                  onClick={() => signInWithGitHub()}
+                  className="h-12 gap-2 rounded-full px-7 text-sm font-semibold"
+                >
+                  <Github className="size-4" /> Continue with GitHub
+                  <ArrowRight className="size-4" />
+                </Button>
+                <Link
+                  to="/onboarding"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-7 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+                >
+                  <Plus className="size-4" /> Create an org
+                </Link>
+              </div>
+              <div className="flex items-center gap-6 pt-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-400" /> SOC2-ready</span>
+                <span className="flex items-center gap-2"><Activity className="size-4 text-cyan-400" /> Realtime sync</span>
+                <span className="flex items-center gap-2"><Zap className="size-4 text-primary" /> AI insights</span>
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#090a12]/95 p-6 shadow-[0_0_120px_rgba(108,99,255,0.14)] sm:p-8">
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(108,99,255,0.14),transparent_45%),linear-gradient(90deg,rgba(0,212,255,0.12),transparent_50%)]" />
-              <div className="relative z-10 space-y-5">
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                  <span>Organization overview</span>
-                  <span>Live sync</span>
+            {/* product mock */}
+            <div className="relative">
+              <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-[#0c0e1c]/95 to-[#06070f]/95 p-6 shadow-[0_30px_120px_-20px_rgba(108,99,255,0.4)]">
+                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Live workspace
+                  </span>
+                  <span>devant.app</span>
                 </div>
-                <div className="rounded-3xl bg-[#11121d]/95 p-5">
-                  <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
-                    <span>DevANT Premium</span>
-                    <span className="rounded-full bg-surface px-3 py-1 text-[11px] uppercase">Beta</span>
-                  </div>
-                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-3xl bg-[#0e1020] p-4">
-                      <p className="text-xs text-muted-foreground">Deployments</p>
-                      <p className="mt-3 text-xl font-semibold">24</p>
+
+                <div className="mt-5 space-y-3">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">DevANT Premium</p>
+                        <p className="mt-1 text-base font-semibold">12 repos · 8 members</p>
+                      </div>
+                      <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase text-primary">Pro</span>
                     </div>
-                    <div className="rounded-3xl bg-[#0e1020] p-4">
-                      <p className="text-xs text-muted-foreground">Team tasks</p>
-                      <p className="mt-3 text-xl font-semibold">142</p>
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                      {[
+                        { label: "Commits", value: "1.2k" },
+                        { label: "PRs", value: "47" },
+                        { label: "Deploys", value: "24" },
+                      ].map((s) => (
+                        <div key={s.label} className="rounded-xl bg-black/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                          <p className="mt-1 text-lg font-semibold">{s.value}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="mt-5 rounded-3xl border border-white/10 bg-[#090a12] p-4">
-                    <div className="text-xs text-muted-foreground">Latest commit insight</div>
-                    <div className="mt-3 text-sm text-white">Refactor release workflow to reduce onboarding friction by 18%.</div>
+
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">AI commit insight</p>
+                    <p className="mt-2 text-sm leading-relaxed">
+                      <span className="text-primary">→</span> Refactor release workflow to reduce
+                      onboarding friction by <span className="font-semibold text-emerald-400">18%</span>.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-3 text-xs">
+                      <p className="text-muted-foreground">PR #432</p>
+                      <p className="mt-1 truncate font-medium">feat: realtime task assignment</p>
+                      <p className="mt-2 text-emerald-400">✓ Ready to merge</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-3 text-xs">
+                      <p className="text-muted-foreground">Deploy</p>
+                      <p className="mt-1 truncate font-medium">api · v2.4.1</p>
+                      <p className="mt-2 text-cyan-400">↗ Production</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </section>
 
-          <div className="mt-16 grid gap-4 sm:grid-cols-3">
+        {/* features */}
+        <section id="features" className="mx-auto max-w-7xl px-6 pb-24 lg:px-10">
+          <div className="mb-12 text-center">
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">Built for shipping teams</h2>
+            <p className="mt-3 text-muted-foreground">Everything your org needs, nothing it doesn't.</p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {[
-              { title: "Realtime chat", description: "Share updates with your team instantly." },
-              { title: "AI insights", description: "Actionable commit intelligence at a glance." },
-              { title: "Org scope", description: "One workspace for every team and repo." },
-            ].map((feature) => (
-              <div key={feature.title} className="glass rounded-3xl border border-white/10 p-6">
-                <h3 className="font-semibold text-lg">{feature.title}</h3>
-                <p className="mt-3 text-sm text-muted-foreground">{feature.description}</p>
+              { icon: Workflow, title: "Org-scoped projects", desc: "Multi-tenant workspaces with role-based access. Switch orgs in one click." },
+              { icon: Activity, title: "Realtime everything", desc: "Tasks, messages, deploys — every member sees the same state instantly." },
+              { icon: Sparkles, title: "AI commit insights", desc: "Plain-English summaries of every push, with risk and impact scoring." },
+              { icon: Users2, title: "Team chat", desc: "Per-project messaging with mentions and live presence." },
+              { icon: Rocket, title: "DORA metrics", desc: "Deployment frequency, lead time, MTTR — without spreadsheets." },
+              { icon: ShieldCheck, title: "GitHub-native auth", desc: "OAuth, repo-scoped, no credentials stored. Your data stays yours." },
+            ].map((f) => (
+              <div
+                key={f.title}
+                className="group rounded-3xl border border-white/10 bg-white/[0.02] p-6 transition hover:border-primary/40 hover:bg-white/[0.04]"
+              >
+                <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/15 text-primary transition group-hover:bg-primary/25">
+                  <f.icon className="size-5" />
+                </div>
+                <h3 className="mt-5 font-display text-lg font-semibold">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
               </div>
             ))}
           </div>
+        </section>
 
-          <div className="mt-16 grid gap-6 lg:grid-cols-3">
-            <div className="glass rounded-3xl border border-white/10 p-6">
-              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Free forever</p>
-              <h3 className="mt-3 text-2xl font-semibold">$0</h3>
-              <p className="mt-4 text-sm text-muted-foreground">1 org · 3 projects · 5 members · GitHub sync.</p>
-              <Button className="mt-6 w-full">Start free</Button>
+        {/* pricing */}
+        <section id="pricing" className="mx-auto max-w-7xl px-6 pb-24 lg:px-10">
+          <div className="mb-10 text-center">
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">Simple pricing</h2>
+            <p className="mt-3 text-muted-foreground">Start free. Scale when you need to.</p>
+          </div>
+          <div className="grid gap-5 lg:grid-cols-3">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-7">
+              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Free</p>
+              <p className="mt-4 font-display text-4xl font-bold">$0</p>
+              <p className="mt-3 text-sm text-muted-foreground">1 org · 3 projects · 5 members.</p>
+              <Button onClick={() => signInWithGitHub()} className="mt-7 w-full" variant="outline">Get started</Button>
             </div>
-            <div className="glass rounded-3xl border border-primary/40 p-6 shadow-[0_0_0_1px_rgba(108,99,255,0.22)]">
-              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Pro</p>
-              <h3 className="mt-3 text-2xl font-semibold">$12/user/mo</h3>
-              <p className="mt-4 text-sm text-muted-foreground">Unlimited orgs · unlimited projects · unlimited members · priority sync.</p>
-              <Button className="mt-6 w-full bg-primary text-black hover:bg-primary/90">Upgrade</Button>
+            <div className="relative rounded-3xl border border-primary/50 bg-gradient-to-br from-primary/10 to-cyan-500/5 p-7 shadow-[0_0_60px_-15px_rgba(108,99,255,0.5)]">
+              <span className="absolute -top-3 right-7 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase text-black">Popular</span>
+              <p className="text-xs uppercase tracking-[0.24em] text-primary">Pro</p>
+              <p className="mt-4 font-display text-4xl font-bold">$12<span className="text-base font-normal text-muted-foreground">/user/mo</span></p>
+              <p className="mt-3 text-sm text-muted-foreground">Unlimited orgs, projects, members, priority sync.</p>
+              <Button onClick={() => signInWithGitHub()} className="mt-7 w-full">Start Pro trial</Button>
             </div>
-            <div className="glass rounded-3xl border border-white/10 p-6">
-              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Ready to ship</p>
-              <h3 className="mt-3 text-2xl font-semibold">Built for teams</h3>
-              <p className="mt-4 text-sm text-muted-foreground">Invite teammates, assign work, and keep every repo scoped to your org.</p>
-              <Button variant="outline" className="mt-6 w-full">See pricing</Button>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-7">
+              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Enterprise</p>
+              <p className="mt-4 font-display text-4xl font-bold">Custom</p>
+              <p className="mt-3 text-sm text-muted-foreground">SSO, audit logs, dedicated support, SLA.</p>
+              <Button asChild className="mt-7 w-full" variant="outline"><a href="mailto:hello@devant.app">Contact sales</a></Button>
             </div>
           </div>
-        </div>
+        </section>
+
+        <footer className="border-t border-white/5 px-6 py-8 text-center text-xs text-muted-foreground lg:px-10">
+          © {new Date().getFullYear()} DevANT · <Link to="/privacy-policy" className="hover:text-foreground">Privacy</Link> · <Link to="/terms-of-service" className="hover:text-foreground">Terms</Link>
+        </footer>
       </div>
     </div>
   );
 }
 
+/* ------------------------------ DASHBOARD ------------------------------ */
+
 function Dashboard() {
   const { user } = useAuth();
-  const { currentOrg } = useCurrentOrg();
+  const { currentOrg, orgs, loading: orgsLoading } = useCurrentOrg();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<ImportedProject[]>([]);
   const [stats, setStats] = useState({ commits: 0, prs: 0, issues: 0, deploys: 0 });
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
 
+  // No org? Push to onboarding (Supabase-style first-run).
+  useEffect(() => {
+    if (!orgsLoading && user && orgs.length === 0) {
+      navigate({ to: "/onboarding" });
+    }
+  }, [orgsLoading, user, orgs.length, navigate]);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
-      if (!user) { setProjects([]); return; }
+      if (!user) {
+        setProjects([]);
+        return;
+      }
       const all = await fetchImportedProjects(user.id);
       const list = currentOrg
         ? all.filter((p) => !p.org_id || p.org_id === currentOrg.id)
@@ -144,65 +292,148 @@ function Dashboard() {
       if (!token || list.length === 0) return;
       setLoading(true);
       try {
-        let commits = 0, prs = 0, issues = 0, deploys = 0;
-        await Promise.all(list.map(async (p) => {
-          const [c, pr, is, dp] = await Promise.all([
-            listCommits(token, p.owner, p.repo, { per_page: 100 }).catch(() => []),
-            listPulls(token, p.owner, p.repo, "open").catch(() => []),
-            listIssues(token, p.owner, p.repo, "open").catch(() => []),
-            listDeployments(token, p.owner, p.repo).catch(() => []),
-          ]);
-          commits += c.length;
-          prs += pr.length;
-          issues += (is ?? []).filter((i: any) => !i.pull_request).length;
-          deploys += dp.length;
-        }));
+        let commits = 0,
+          prs = 0,
+          issues = 0,
+          deploys = 0;
+        await Promise.all(
+          list.map(async (p) => {
+            const [c, pr, is, dp] = await Promise.all([
+              listCommits(token, p.owner, p.repo, { per_page: 100 }).catch(() => []),
+              listPulls(token, p.owner, p.repo, "open").catch(() => []),
+              listIssues(token, p.owner, p.repo, "open").catch(() => []),
+              listDeployments(token, p.owner, p.repo).catch(() => []),
+            ]);
+            commits += c.length;
+            prs += pr.length;
+            issues += (is ?? []).filter((i: any) => !i.pull_request).length;
+            deploys += dp.length;
+          }),
+        );
         if (mounted) setStats({ commits, prs, issues, deploys });
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [user, tick, currentOrg?.id]);
 
-  if (projects.length === 0) {
-    return (
-      <>
-        <PageHeader title="Dashboard" description="Import a GitHub repository to begin." />
-        <div className="glass rounded-xl p-6">
-          <h2 className="font-display font-semibold text-lg">No linked repositories yet</h2>
-          <p className="text-sm text-muted-foreground mt-2">Click <b>New Project+</b> to import a GitHub repository.</p>
-          <Link to="/projects"><Button className="gap-1.5 mt-4"><Plus className="size-4" /> Open Projects</Button></Link>
-        </div>
-      </>
-    );
-  }
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  })();
+  const firstName =
+    ((user?.user_metadata as any)?.full_name || user?.email || "there").split(" ")[0]?.split("@")[0] ?? "there";
 
   return (
-    <>
-      <PageHeader title="Dashboard" description={`Live aggregate across ${projects.length} project${projects.length === 1 ? "" : "s"}.`} />
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Commits" value={loading ? 0 : stats.commits} icon={GitCommit} accent="primary" />
-        <StatCard label="Open PRs" value={loading ? 0 : stats.prs} icon={GitPullRequest} accent="success" />
-        <StatCard label="Open Issues" value={loading ? 0 : stats.issues} icon={Bug} accent="warning" />
-        <StatCard label="Deployments" value={loading ? 0 : stats.deploys} icon={Rocket} accent="cyan" />
+    <div className="space-y-8">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-primary/15 via-[#0c0e1c]/60 to-cyan-500/10 p-8">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-10 h-52 w-52 rounded-full bg-cyan-500/20 blur-3xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-primary/80">
+              {currentOrg?.name ?? "Your workspace"}
+            </p>
+            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              {greeting}, {firstName}.
+            </h1>
+            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+              Live aggregate across {projects.length} project{projects.length === 1 ? "" : "s"} in{" "}
+              <span className="text-foreground">{currentOrg?.name ?? "this workspace"}</span>.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="gap-2">
+              <Link to="/projects">
+                <Plus className="size-4" /> New project
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/analytics">
+                <Activity className="size-4" /> Analytics
+              </Link>
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <h2 className="font-display font-semibold text-lg mb-3">Your Projects</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {projects.map((p) => (
-          <Link key={p.id} to="/projects/$projectId" params={{ projectId: p.id } as any} className="glass glass-hover rounded-xl p-5 block">
-            <div className="flex items-start gap-3">
-              <div className="size-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center"><FolderGit2 className="size-5" /></div>
-              <div className="min-w-0">
-                <div className="font-display font-semibold truncate">{p.name}</div>
-                <div className="text-xs font-mono text-muted-foreground truncate">{p.owner}/{p.repo}</div>
-              </div>
+      {/* Stat grid */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[
+          { label: "Commits", value: stats.commits, icon: GitCommit, tone: "from-primary/20 to-primary/5", iconColor: "text-primary" },
+          { label: "Open PRs", value: stats.prs, icon: GitPullRequest, tone: "from-emerald-500/20 to-emerald-500/5", iconColor: "text-emerald-400" },
+          { label: "Open Issues", value: stats.issues, icon: Bug, tone: "from-amber-500/20 to-amber-500/5", iconColor: "text-amber-400" },
+          { label: "Deployments", value: stats.deploys, icon: Rocket, tone: "from-cyan-500/20 to-cyan-500/5", iconColor: "text-cyan-400" },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${s.tone} p-5`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{s.label}</p>
+              <s.icon className={`size-4 ${s.iconColor}`} />
             </div>
-          </Link>
+            <p className="mt-3 font-display text-3xl font-bold">{loading ? "—" : s.value}</p>
+          </div>
         ))}
       </div>
-    </>
+
+      {/* Projects */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-xl font-semibold">Projects</h2>
+          <Link to="/projects" className="text-sm text-muted-foreground hover:text-foreground">
+            View all →
+          </Link>
+        </div>
+
+        {projects.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+              <FolderGit2 className="size-6" />
+            </div>
+            <h3 className="mt-5 font-display text-lg font-semibold">No projects yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Import your first GitHub repository to start tracking commits, PRs, and deploys.
+            </p>
+            <Button asChild className="mt-6 gap-2">
+              <Link to="/projects">
+                <Plus className="size-4" /> Import a repo
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {projects.map((p) => (
+              <Link
+                key={p.id}
+                to="/projects/$projectId"
+                params={{ projectId: p.id } as any}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-primary/40 hover:bg-white/[0.04]"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary transition group-hover:bg-primary/25">
+                    <FolderGit2 className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display font-semibold truncate">{p.name}</div>
+                    <div className="font-mono text-xs text-muted-foreground truncate">
+                      {p.owner}/{p.repo}
+                    </div>
+                  </div>
+                  <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

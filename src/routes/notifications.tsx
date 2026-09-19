@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Bell, Check, Mail, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth, getGitHubToken } from "@/lib/auth";
@@ -26,6 +26,7 @@ function Notifications() {
   const { user } = useAuth();
   const [items, setItems] = useState<N[]>([]);
   const [invites, setInvites] = useState<OrgInvite[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
@@ -35,10 +36,12 @@ function Notifications() {
   useEffect(() => {
     if (!user?.email) {
       setInvites([]);
+      setInvitesLoading(false);
       return;
     }
 
     let mounted = true;
+    setInvitesLoading(true);
     (async () => {
       try {
         const supabase = getSupabase();
@@ -68,6 +71,8 @@ function Notifications() {
         setInvites(pendingInvites);
       } catch (err) {
         console.error("Error loading org invites:", err);
+      } finally {
+        if (mounted) setInvitesLoading(false);
       }
     })();
 
@@ -158,6 +163,11 @@ function Notifications() {
       <PageHeader title="Notifications" action={<Button variant="outline" size="sm" className="gap-1.5" onClick={markAll}><Check className="size-4" /> Mark all read</Button>} />
       {!user && <div className="glass rounded-xl p-6 text-sm text-muted-foreground">Sign in to view notifications.</div>}
       <div className="space-y-2">
+        {loading || invitesLoading ? (
+          <div className="flex min-h-24 items-center justify-center">
+            <LoadingSpinner />
+          </div>
+        ) : <>
         {/* Pending Organization Invites */}
         {invites.length > 0 && (
           <>
@@ -203,19 +213,6 @@ function Notifications() {
         )}
 
         {/* GitHub Notifications */}
-        {loading ? (
-          <div className="space-y-2 mt-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="glass rounded-xl p-4 flex items-start gap-3">
-                <Skeleton className="size-9 rounded-lg shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/3" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
         {!loading && items.length > 0 && <div className="text-sm font-semibold text-muted-foreground px-1 pt-4">GitHub Activity</div>}
         {!loading && user && items.length === 0 && invites.length === 0 && <div className="glass rounded-xl p-6 text-sm text-muted-foreground">No notifications yet.</div>}
         {items.length > 0 && <Rise>
@@ -230,6 +227,7 @@ function Notifications() {
           </div>
         ))}
         </Rise>}
+        </>}
       </div>
     </>
   );

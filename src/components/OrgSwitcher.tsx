@@ -36,7 +36,7 @@ export function OrgSwitcher() {
         <ChevronsUpDown className="size-3.5 opacity-60 shrink-0" />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" className="w-64 bg-[#18181b] border-[#27272a] text-xs">
+      <DropdownMenuContent align="start" className="w-64 bg-popover border-border text-xs">
         <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
           Your organizations
         </DropdownMenuLabel>
@@ -44,7 +44,7 @@ export function OrgSwitcher() {
           <DropdownMenuItem
             key={org.id}
             onClick={() => switchOrg(org.id)}
-            className="flex items-center gap-2 text-xs text-zinc-200 hover:text-zinc-100 focus:bg-[#27272a] cursor-pointer"
+            className="flex items-center gap-2 text-xs text-foreground hover:text-foreground focus:bg-accent cursor-pointer"
           >
             <Building2 className="size-4 text-muted-foreground shrink-0" />
             <div className="flex-1 min-w-0">
@@ -54,16 +54,16 @@ export function OrgSwitcher() {
             {currentOrg?.id === org.id && <Check className="size-4 text-primary shrink-0" />}
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator className="bg-[#27272a]" />
+        <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem
           onClick={() => navigate({ to: "/onboarding" })}
-          className="flex items-center gap-2 text-xs text-zinc-200 hover:text-zinc-100 focus:bg-[#27272a] cursor-pointer"
+          className="flex items-center gap-2 text-xs text-foreground hover:text-foreground focus:bg-accent cursor-pointer"
         >
           <Plus className="size-4" /> Create new organization
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => navigate({ to: "/settings" })}
-          className="flex items-center gap-2 text-xs text-zinc-200 hover:text-zinc-100 focus:bg-[#27272a] cursor-pointer"
+          className="flex items-center gap-2 text-xs text-foreground hover:text-foreground focus:bg-accent cursor-pointer"
         >
           Manage organizations
         </DropdownMenuItem>

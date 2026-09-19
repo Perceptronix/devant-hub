@@ -24,7 +24,7 @@ import { useSyncListener } from "@/lib/sync";
 import { useCurrentOrg } from "@/lib/current-org";
 import { AppShell } from "@/components/AppShell";
 import { Logo } from "@/components/Logo";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Rise, Reveal } from "cube-motion/react";
 
 export const Route = createFileRoute("/")({
@@ -58,7 +58,7 @@ function Home() {
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-[#05060d] text-white">
+    <div className="landing-page min-h-screen bg-[#05060d] text-white">
       {/* nav — outside overflow-hidden so sticky works */}
       <header className="sticky top-0 z-50 bg-[#05060d]/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
@@ -385,7 +385,9 @@ function Dashboard() {
               <p className="text-xs uppercase tracking-wider text-muted-foreground">{s.label}</p>
               <s.icon className={`size-4 ${s.iconColor}`} />
             </div>
-            <p className="mt-3 font-display text-3xl font-bold">{loading ? "—" : s.value}</p>
+            <div className="mt-3 flex h-9 items-center">
+              {loading ? <LoadingSpinner /> : <p className="font-display text-3xl font-bold">{s.value}</p>}
+            </div>
           </div>
         ))}
         </div>
@@ -401,13 +403,9 @@ function Dashboard() {
         </div>
 
         {projectsLoading ? (
-          <Reveal targets="children">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-36 rounded-2xl" />
-            ))}
-            </div>
-          </Reveal>
+          <div className="flex min-h-36 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02]">
+            <LoadingSpinner />
+          </div>
         ) : projects.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
             <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">

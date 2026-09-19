@@ -8,7 +8,7 @@ import { listDeployments, listDeploymentStatuses } from "@/lib/github/client";
 import { formatDistanceToNow } from "date-fns";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useSyncListener } from "@/lib/sync";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 export const Route = createFileRoute("/projects/$projectId/deployments")({
   component: Deployments,
@@ -64,28 +64,9 @@ function Deployments() {
     <>
       <h1 className="text-2xl font-display font-bold mb-4">Deployments</h1>
       {loading ? (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="glass rounded-xl p-5 space-y-3">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-2 w-full" />
-              </div>
-            ))}
-          </div>
-          <div className="space-y-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="glass rounded-xl p-4 flex items-center gap-4">
-                <Skeleton className="size-10 rounded-lg shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-3 w-40" />
-                  <Skeleton className="h-3 w-28" />
-                </div>
-                <Skeleton className="h-5 w-16 rounded-full" />
-              </div>
-            ))}
-          </div>
-        </>
+        <div className="glass flex min-h-72 items-center justify-center rounded-xl">
+          <LoadingSpinner />
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

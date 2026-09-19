@@ -25,7 +25,7 @@ function Login() {
         <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-cyan/20 blur-3xl" />
       </div>
 
-      <div className="w-full max-w-lg glass rounded-[36px] border border-white/10 p-10 shadow-2xl shadow-black/20 animate-fade-up">
+      <div className="w-full max-w-lg glass rounded-[36px] border border-border p-10 shadow-2xl shadow-black/20 animate-fade-up">
         <div className="flex justify-center mb-6"><Logo /></div>
         <h1 className="text-3xl font-display font-bold text-center">Sign in to DevANT</h1>
         <p className="text-center text-muted-foreground text-sm mt-3 mb-8">
@@ -39,7 +39,7 @@ function Login() {
         <div className="mt-8 grid gap-3 text-center text-sm text-muted-foreground">
           <p>Need an account? Sign in with your GitHub organization.</p>
           <p>
-            New here? <Link to="/onboarding" className="text-white underline">Create your org</Link> and invite your team.
+            New here? <Link to="/onboarding" className="text-foreground underline">Create your org</Link> and invite your team.
           </p>
         </div>
       </div>

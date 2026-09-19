@@ -57,7 +57,46 @@
 :root {
   --radius: 0.375rem;
 
-  /* Apple/Waydev Monochrome Dark Palette */
+  /* Apple/Waydev Monochrome Light Palette */
+  --background: #fafafa;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --surface-elevated: #f4f4f5;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  --primary: #18181b;
+  --primary-foreground: #ffffff;
+  --cyan: #38bdf8;
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+
+  --secondary: #e4e4e7;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #e4e4e7;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #e4e4e7;
+  --border-strong: #a1a1aa;
+  --input: #e4e4e7;
+  --ring: #71717a;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #18181b;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #71717a;
+}
+
+.dark {
   --background: #09090b;
   --foreground: #f5f5f7;
   --surface: #18181b;
@@ -66,14 +105,8 @@
   --card-foreground: #f5f5f7;
   --popover: #18181b;
   --popover-foreground: #f5f5f7;
-
   --primary: #f5f5f7;
   --primary-foreground: #09090b;
-  --cyan: #38bdf8;
-  --success: #34d399;
-  --danger: #f87171;
-  --warning: #fbbf24;
-
   --secondary: #27272a;
   --secondary-foreground: #f5f5f7;
   --muted: #18181b;
@@ -82,36 +115,11 @@
   --accent-foreground: #f5f5f7;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-
-  --border: #27272a;
+  --cyan: #38bdf8;
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
   --border-strong: #3f3f46;
-  --input: #27272a;
-  --ring: #52525b;
-
-  --sidebar: #09090b;
-  --sidebar-foreground: #f5f5f7;
-  --sidebar-accent: #18181b;
-  --sidebar-accent-foreground: #f5f5f7;
-  --sidebar-border: #27272a;
-  --sidebar-ring: #52525b;
-}
-
-.dark {
-  --background: #09090b;
-  --foreground: #f5f5f7;
-  --card: #18181b;
-  --card-foreground: #f5f5f7;
-  --popover: #18181b;
-  --popover-foreground: #f5f5f7;
-  --primary: #f5f5f7;
-  --primary-foreground: #09090b;
-  --secondary: #27272a;
-  --secondary-foreground: #f5f5f7;
-  --muted: #18181b;
-  --muted-foreground: #71717a;
-  --accent: #27272a;
-  --accent-foreground: #f5f5f7;
-  --destructive: #ef4444;
   --border: #27272a;
   --input: #27272a;
   --ring: #52525b;
@@ -152,23 +160,46 @@
 
 @layer utilities {
   .glass {
-    background: #18181b;
-    border: 1px solid #27272a;
+    background: var(--surface);
+    border: 1px solid var(--border);
   }
   .glass-hover {
     transition: border-color 150ms ease, background-color 150ms ease;
   }
   .glass-hover:hover {
-    border-color: #3f3f46;
-    background-color: #27272a;
+    border-color: var(--border-strong);
+    background-color: var(--surface-elevated);
   }
   .text-gradient {
     color: #f5f5f7;
   }
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #27272a;
+    background: var(--border);
     border-radius: 4px;
   }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 }
+
+/* Keep the dense issue workbench's existing zinc palette synchronized in light mode. */
+.light .issue-workbench [class*="bg-[#09090b]"] { background-color: var(--background) !important; }
+.light .issue-workbench [class*="bg-[#18181b]"] { background-color: var(--surface) !important; }
+.light .issue-workbench [class*="bg-[#27272a]"] { background-color: var(--accent) !important; }
+.light .issue-workbench [class*="bg-zinc-950"] { background-color: var(--background) !important; }
+.light .issue-workbench [class*="bg-zinc-900"] { background-color: var(--surface) !important; }
+.light .issue-workbench [class*="border-[#27272a]"] { border-color: var(--border) !important; }
+.light .issue-workbench [class*="border-zinc-"] { border-color: var(--border) !important; }
+.light .issue-workbench [class*="text-zinc-100"],
+.light .issue-workbench [class*="text-zinc-200"],
+.light .issue-workbench [class*="text-zinc-300"] { color: var(--foreground) !important; }
+.light .issue-workbench [class*="text-zinc-400"],
+.light .issue-workbench [class*="text-zinc-500"],
+.light .issue-workbench [class*="text-zinc-600"] { color: var(--muted-foreground) !important; }
+
+.light .landing-page [class*="bg-[#05060d]"] { background-color: var(--background) !important; }
+.light .landing-page [class*="bg-[#0c0e1c]"],
+.light .landing-page [class*="bg-[#06070f]"],
+.light .landing-page [class*="bg-black"] { background-color: var(--surface) !important; }
+.light .landing-page [class*="bg-white"] { background-color: var(--surface-elevated) !important; }
+.light .landing-page [class*="border-white"] { border-color: var(--border) !important; }
+.light .landing-page [class*="text-white"] { color: var(--foreground) !important; }

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
@@ -60,30 +60,8 @@ function Commits() {
     <>
       <h1 className="text-2xl font-display font-bold mb-4">Commits</h1>
       {loading ? (
-        <div className="glass rounded-xl overflow-hidden">
-          <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full text-sm">
-              <thead className="bg-surface">
-                <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
-                  <th className="px-4 py-3">SHA</th><th className="px-4 py-3">Author</th>
-                  <th className="px-4 py-3">Message</th><th className="px-4 py-3">Branch</th>
-                  <th className="px-4 py-3 text-right">Changes</th><th className="px-4 py-3">When</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="border-t border-border">
-                    <td className="px-4 py-3"><Skeleton className="h-4 w-14" /></td>
-                    <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
-                    <td className="px-4 py-3"><Skeleton className="h-4 w-48" /></td>
-                    <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
-                    <td className="px-4 py-3"><Skeleton className="h-4 w-16 ml-auto" /></td>
-                    <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="glass flex min-h-72 items-center justify-center rounded-xl">
+          <LoadingSpinner />
         </div>
       ) : rows.length === 0 ? (
         <div className="glass rounded-xl p-6 text-sm text-muted-foreground">No commits.</div>

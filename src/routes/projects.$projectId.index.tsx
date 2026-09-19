@@ -4,7 +4,7 @@ import { useAuth, getGitHubToken } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
 import { getRepo, listCommits, listPulls, listIssues, listDeployments } from "@/lib/github/client";
 import { StatCard } from "@/components/StatCard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { GitCommit, GitPullRequest, Bug, Rocket } from "lucide-react";
 import { useSyncListener } from "@/lib/sync";
 
@@ -56,28 +56,14 @@ function ProjectOverview() {
 
   if (loading) return (
     <>
-      <div className="mb-6">
-        <Skeleton className="h-8 w-48 mb-2" />
-        <Skeleton className="h-4 w-32" />
+      <div className="mb-6 flex min-h-16 items-center justify-center">
+        <LoadingSpinner />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="glass rounded-xl p-5 space-y-3">
-            <div className="flex items-start justify-between">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="size-8 rounded-lg" />
-            </div>
-            <Skeleton className="h-8 w-16" />
-          </div>
-        ))}
+      <div className="glass mb-6 flex min-h-36 items-center justify-center rounded-xl">
+        <LoadingSpinner />
       </div>
-      <div className="glass rounded-xl p-5">
-        <Skeleton className="h-4 w-48 mb-3" />
-        <div className="flex gap-3">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-3 w-16" />
-        </div>
+      <div className="glass flex min-h-24 items-center justify-center rounded-xl">
+        <LoadingSpinner />
       </div>
     </>
   );

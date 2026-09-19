@@ -17,7 +17,7 @@ import { fetchImportedProjects, insertImportedProject, removeImportedProject, Im
 } from "@/lib/imported-projects";
 import { emitSync, useSyncListener } from "@/lib/sync";
 import { useCurrentOrg } from "@/lib/current-org";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 export const Route = createFileRoute("/projects/")({
   head: () => ({ meta: [{ title: "Projects — DevANT" }] }),
@@ -140,8 +140,8 @@ function Projects() {
       />
 
       {projectsLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-44 rounded-xl" />)}
+        <div className="flex min-h-44 items-center justify-center rounded-xl border border-border bg-surface">
+          <LoadingSpinner />
         </div>
       ) : linkedProjects.length === 0 ? (
         <Rise>
@@ -214,7 +214,7 @@ function Projects() {
             {user ? (
                 <div className="max-h-96 overflow-y-auto overflow-x-hidden mt-2 space-y-2 pr-1 rounded-lg border border-border/60 bg-surface/30 p-1">
                 {fetchingRepos ? (
-                  <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Loading repositories…</div>
+                  <div className="flex min-h-12 items-center justify-center"><LoadingSpinner /></div>
                 ) : filteredRepos.length === 0 ? (
                   <div className="text-sm text-muted-foreground">No repositories available to import.</div>
                 ) : filteredRepos.map((r) => (

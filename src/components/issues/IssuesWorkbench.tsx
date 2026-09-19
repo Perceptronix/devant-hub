@@ -258,7 +258,7 @@ export function IssuesWorkbench({ initialTaskList, projectId }: IssuesWorkbenchP
     filter.searchQuery.trim() !== "";
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full bg-[#09090b] text-zinc-100 overflow-hidden font-sans tracking-tight">
+    <div className="issue-workbench flex h-[calc(100vh-64px)] w-full bg-[#09090b] text-zinc-100 overflow-hidden font-sans tracking-tight">
       {/* COLUMN 1: 220px Collapsible Sidebar */}
       <IssueSidebar
         filter={filter}

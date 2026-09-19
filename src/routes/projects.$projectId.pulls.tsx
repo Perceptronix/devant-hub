@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { GitPullRequest } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
@@ -56,16 +56,8 @@ function Pulls() {
     <>
       <h1 className="text-2xl font-display font-bold mb-4">Pull Requests</h1>
       {loading && pulls.length === 0 ? (
-        <div className="space-y-2 mt-4 mb-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="glass rounded-xl p-4 flex items-start gap-4">
-              <Skeleton className="size-5 mt-0.5 shrink-0 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-              </div>
-            </div>
-          ))}
+        <div className="flex min-h-48 items-center justify-center">
+          <LoadingSpinner />
         </div>
       ) : null}
       <Tabs defaultValue="open">

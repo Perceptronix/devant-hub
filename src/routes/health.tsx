@@ -7,7 +7,7 @@ import { computeHealthScore, type HealthScore, type RepoMetrics } from "@/lib/he
 import { useSyncListener } from "@/lib/sync";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -76,7 +76,7 @@ function Sparkline({ data, color }: { data: { v: number }[]; color: string }) {
         <Tooltip
           content={({ active, payload }) =>
             active && payload?.[0] ? (
-              <div className="rounded border border-border bg-[#18181b] px-2 py-1 text-xs tabular-nums">
+              <div className="rounded border border-border bg-popover px-2 py-1 text-xs tabular-nums">
                 {payload[0].value}
               </div>
             ) : null
@@ -178,7 +178,7 @@ const BREAKDOWN_ROWS = [
 function HealthDrawer({ score, onClose }: { score: HealthScore | null; onClose: () => void }) {
   return (
     <Sheet open={!!score} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-[340px] sm:w-[380px] flex flex-col gap-0 p-0 overflow-y-auto bg-[#18181b] border-l border-border">
+      <SheetContent className="w-[340px] sm:w-[380px] flex flex-col gap-0 p-0 overflow-y-auto bg-surface border-l border-border">
         {score && (
           <>
             {/* header */}
@@ -401,7 +401,11 @@ function HealthDashboard() {
       )}
 
       {/* Metrics strip — KPI cards with inline sparklines */}
-      <Rise show={!loading}>
+      {loading ? (
+        <div className="flex min-h-24 items-center justify-center rounded-md border border-border bg-surface mb-4">
+          <LoadingSpinner />
+        </div>
+      ) : <Rise>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-md overflow-hidden mb-4 border border-border">
         {[
           {
@@ -433,10 +437,10 @@ function HealthDashboard() {
             sparkData: loading ? null : seedSparkline("projects", 70),
           },
         ].map(({ label, value, color, sparkColor, sparkData }) => (
-          <div key={label} className="bg-[#18181b] px-4 pt-3 pb-2">
+          <div key={label} className="bg-surface px-4 pt-3 pb-2">
             <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
             {value === null
-              ? <><Skeleton className="h-6 w-14 rounded mb-2" /><Skeleton className="h-8 w-full rounded" /></>
+              ? <div className="flex h-10 items-center"><LoadingSpinner /></div>
               : <>
                   <p className={cn("text-xl font-bold tabular-nums mb-1", color)}>{value}</p>
                   {sparkData && <Sparkline data={sparkData} color={sparkColor} />}
@@ -445,29 +449,13 @@ function HealthDashboard() {
           </div>
         ))}
       </div>
-      </Rise>
+      </Rise>}
 
       {/* Table */}
       <div className="rounded-md border border-border overflow-hidden">
         {loading ? (
-          <div className="divide-y divide-border">
-            {/* header skeleton */}
-            <div className="flex gap-4 px-4 py-2.5 bg-[#18181b]">
-              {[120, 160, 160, 80].map((w, i) => (
-                <Skeleton key={i} className="h-3 rounded" style={{ width: w }} />
-              ))}
-            </div>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex gap-4 px-4 py-3 items-center">
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-3.5 w-32 rounded" />
-                  <Skeleton className="h-2.5 w-24 rounded" />
-                </div>
-                <Skeleton className="h-3 w-28 rounded" />
-                <Skeleton className="h-3 w-28 rounded" />
-                <Skeleton className="h-5 w-16 rounded" />
-              </div>
-            ))}
+          <div className="flex min-h-56 items-center justify-center bg-surface">
+            <LoadingSpinner />
           </div>
         ) : error ? (
           <div className="px-4 py-8 text-center">
@@ -493,7 +481,7 @@ function HealthDashboard() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-[#18181b] hover:bg-[#18181b]">
+              <TableRow className="bg-surface hover:bg-surface">
                 <SortHead col="name" className="pl-4 w-[220px]">Project</SortHead>
                 <SortHead col="health" className="w-[180px]">Health</SortHead>
                 <SortHead col="taskFulfillment" className="w-[180px]">Fulfillment</SortHead>

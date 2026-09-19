@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
 import { emitSync } from "@/lib/sync";
 import { Github, Sun, Moon, Plus, Trash2, Loader2, Copy, Mail, Check, X } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
 import {
@@ -85,6 +85,7 @@ function Settings() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [loadingOrgData, setLoadingOrgData] = useState(false);
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [creatingDept, setCreatingDept] = useState(false);
@@ -99,8 +100,12 @@ function Settings() {
 
   // Load user organizations
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoadingOrgs(false);
+      return;
+    }
     let mounted = true;
+    setLoadingOrgs(true);
     (async () => {
       try {
         const supabase = getSupabase();
@@ -149,6 +154,8 @@ function Settings() {
         }
       } catch (err) {
         console.error("Failed to load organizations:", err);
+      } finally {
+        if (mounted) setLoadingOrgs(false);
       }
     })();
     return () => {
@@ -481,7 +488,11 @@ function Settings() {
         <TabsContent value="organizations">
           <div className="space-y-4 max-w-3xl">
             {/* Org Selector */}
-            {orgs.length > 0 && (
+            {loadingOrgs ? (
+              <Card>
+                <div className="flex min-h-16 items-center justify-center"><LoadingSpinner /></div>
+              </Card>
+            ) : orgs.length > 0 && (
               <Card>
                 <h3 className="font-display font-semibold mb-3">Your Organizations</h3>
                 <div className="flex flex-wrap gap-2 mb-4">
@@ -652,15 +663,8 @@ function Settings() {
                     )}
                   </div>
                   {loadingOrgData ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
-                          <div className="space-y-1.5">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-24" />
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex min-h-24 items-center justify-center">
+                      <LoadingSpinner />
                     </div>
                   ) : departments.length === 0 ? (
                     <div className="text-sm text-muted-foreground">No departments yet</div>
@@ -757,18 +761,8 @@ function Settings() {
                     )}
                   </div>
                   {loadingOrgData ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="size-9 rounded-full shrink-0" />
-                            <div className="space-y-1.5">
-                              <Skeleton className="h-4 w-32" />
-                              <Skeleton className="h-3 w-20" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex min-h-24 items-center justify-center">
+                      <LoadingSpinner />
                     </div>
                   ) : members.length === 0 ? (
                     <div className="text-sm text-muted-foreground">No members yet</div>

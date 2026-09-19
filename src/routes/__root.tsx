@@ -110,8 +110,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("devant.theme");if(t==="dark"||t==="light")document.documentElement.classList.add(t)}catch(e){}})()`,
+          }}
+        />
         <HeadContent />
       </head>
       <body className="bg-background text-foreground">

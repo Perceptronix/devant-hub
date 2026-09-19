@@ -51,6 +51,22 @@ interface TeamMember {
   avatar_url: string | null;
 }
 
+async function resolveProjectOrgId(supabase: ReturnType<typeof getSupabase>, project: any) {
+  if (project?.org_id) return project.org_id;
+  if (!project?.owner) return null;
+  const ownerKey = String(project.owner).toLowerCase();
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("id")
+    .or(`github_org_login.ilike.${ownerKey},slug.ilike.${ownerKey}`)
+    .limit(1);
+  if (error) {
+    console.error("Failed to infer org ID for project:", error);
+    return null;
+  }
+  return data?.[0]?.id ?? null;
+}
+
 export const Route = createFileRoute("/projects/$projectId/tasks")({
   component: Tasks,
 });
@@ -97,15 +113,20 @@ function Tasks() {
       setLoading(true);
       try {
         const supabase = getSupabase();
+        const projectOrgId = await resolveProjectOrgId(supabase, project);
 
         // Fetch tasks
-        const { data: taskRows, error: taskError } = await supabase
+        const taskQuery = supabase
           .from("tasks")
           .select(
             "id, title, description, status, priority, assigned_to, created_by, due_date, created_at",
           )
-          .eq("project_id", project.id)
-          .order("created_at", { ascending: false });
+          .eq("project_id", project.id);
+        if (projectOrgId) {
+          taskQuery.eq("org_id", projectOrgId);
+        }
+
+        const { data: taskRows, error: taskError } = await taskQuery.order("created_at", { ascending: false });
 
         if (!mounted) return;
         if (taskError) {
@@ -114,18 +135,6 @@ function Tasks() {
 
         // If project has org_id, fetch org members; otherwise infer the org from repo owner and fall back to project team members
         let assignableMembers: TeamMember[] = [];
-        let projectOrgId = project.org_id;
-        if (!projectOrgId && project.owner) {
-          const ownerKey = project.owner.toLowerCase();
-          const { data: matchingOrgs, error: matchingOrgsError } = await supabase
-            .from("organizations")
-            .select("id")
-            .or(`github_org_login.ilike.${ownerKey},slug.ilike.${ownerKey}`)
-            .limit(1);
-          if (!matchingOrgsError && matchingOrgs?.length > 0) {
-            projectOrgId = matchingOrgs[0].id;
-          }
-        }
 
         if (projectOrgId) {
           const { data: orgMembers, error: orgError } = await supabase
@@ -246,10 +255,18 @@ function Tasks() {
     setCreating(true);
     try {
       const supabase = getSupabase();
+      const projectOrgId = await resolveProjectOrgId(supabase, project);
+      if (!projectOrgId) {
+        toast.error("Unable to determine organization for this project.");
+        setCreating(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("tasks")
         .insert({
           project_id: project?.id,
+          org_id: projectOrgId,
           created_by: user.id,
           assigned_to: newTask.assigned_to_id || null,
           title: newTask.title.trim(),

@@ -29,6 +29,7 @@ function InvitePage() {
   const [invite, setInvite] = useState<Invite | null>(null);
   const [loadingInvite, setLoadingInvite] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [declining, setDeclining] = useState(false);
   const email = user?.email?.toLowerCase() ?? "";
   const userMeta = (user?.user_metadata as Record<string, string> | undefined) ?? {};
   const githubLogin = userMeta.user_name || userMeta.preferred_username || user?.email || "";
@@ -63,16 +64,14 @@ function InvitePage() {
     setAccepting(true);
     try {
       const supabase = getSupabase();
-      // Atomic accept via RPC: flips status, sets user_id, links project_team_members.
       const { error: rpcError } = await supabase.rpc("accept_org_invite", {
-        _token: (invite as Invite & { inviteToken?: string }).inviteToken ?? token,
+        _token: invite.inviteToken ?? token,
         _display_name: displayName,
         _github_login: githubLogin,
         _avatar_url: userMeta.avatar_url ?? null,
       });
 
       if (rpcError) {
-        // Fallback for environments where the migration hasn't been applied yet.
         console.warn("accept_org_invite RPC failed, falling back:", rpcError);
         const { error } = await supabase
           .from("org_members")
@@ -88,22 +87,40 @@ function InvitePage() {
         if (error) throw error;
       }
 
-      // Trigger a global sync so projects/tasks/team queries refresh.
       try {
         const { emitSync } = await import("@/lib/sync");
         emitSync();
       } catch {
-        /* ignore */
+        // ignore
       }
 
       toast.success(`You joined ${invite.orgName}.`);
-      // Land inside the org dashboard (projects list) instead of /notifications.
       navigate({ to: "/projects" });
     } catch (error) {
       console.error("Failed to accept invite:", error);
       toast.error("Failed to accept invitation");
     } finally {
       setAccepting(false);
+    }
+  }
+
+  async function declineInvite() {
+    if (!invite) return;
+    setDeclining(true);
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase
+        .from("org_members")
+        .update({ status: "declined" })
+        .eq("invite_token", token);
+      if (error) throw error;
+      toast.success("Invitation declined.");
+      navigate({ to: "/" });
+    } catch (error) {
+      console.error("Failed to decline invite:", error);
+      toast.error("Failed to decline invitation");
+    } finally {
+      setDeclining(false);
     }
   }
 
@@ -191,6 +208,15 @@ function InvitePage() {
               {accepting ? "Accepting..." : "Accept invitation"}
             </Button>
           )}
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={declineInvite}
+            disabled={declining}
+            className="text-foreground"
+          >
+            {declining ? "Declining…" : "Decline invitation"}
+          </Button>
           <Button asChild size="lg" variant="outline">
             <Link to="/notifications">View notifications</Link>
           </Button>

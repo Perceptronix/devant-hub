@@ -16,6 +16,7 @@ import {
   fetchImportedProjects, insertImportedProject, removeImportedProject, ImportedProject,
 } from "@/lib/imported-projects";
 import { emitSync, useSyncListener } from "@/lib/sync";
+import { useCurrentOrg } from "@/lib/current-org";
 
 export const Route = createFileRoute("/projects/")({
   head: () => ({ meta: [{ title: "Projects — DevANT" }] }),
@@ -25,8 +26,9 @@ export const Route = createFileRoute("/projects/")({
 function Projects() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const { currentOrg } = useCurrentOrg();
   const [repos, setRepos] = useState<any[]>([]);
-  const [linkedProjects, setLinkedProjects] = useState<ImportedProject[]>([]);
+  const [allProjects, setAllProjects] = useState<ImportedProject[]>([]);
   const [fetchingRepos, setFetchingRepos] = useState(false);
   const [search, setSearch] = useState("");
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -34,13 +36,17 @@ function Projects() {
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
 
+  const linkedProjects = currentOrg
+    ? allProjects.filter((p) => !p.org_id || p.org_id === currentOrg.id)
+    : allProjects;
+
   useEffect(() => {
     let mounted = true;
     (async () => {
-      if (!user) { setLinkedProjects([]); return; }
+      if (!user) { setAllProjects([]); return; }
       const projects = await fetchImportedProjects(user.id);
       if (!mounted) return;
-      setLinkedProjects(projects);
+      setAllProjects(projects);
     })();
     return () => { mounted = false; };
   }, [user, tick]);
@@ -87,7 +93,7 @@ function Projects() {
       };
       const inserted = await insertImportedProject(user.id, imported);
       if (inserted) {
-        setLinkedProjects((cur) => [inserted, ...cur.filter((p) => !(p.owner === inserted.owner && p.repo === inserted.repo))]);
+        setAllProjects((cur: ImportedProject[]) => [inserted, ...cur.filter((p: ImportedProject) => !(p.owner === inserted.owner && p.repo === inserted.repo))]);
       }
     } finally {
       setImportingId(null);
@@ -98,7 +104,7 @@ function Projects() {
     if (!user) return;
     setDisconnectingId(p.id);
     const ok = await removeImportedProject(user.id, p.id);
-    if (ok) setLinkedProjects((cur) => cur.filter((x) => x.id !== p.id));
+    if (ok) setAllProjects((cur: ImportedProject[]) => cur.filter((x: ImportedProject) => x.id !== p.id));
     setDisconnectingId(null);
   }
 

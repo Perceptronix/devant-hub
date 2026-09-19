@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ export const Route = createFileRoute("/onboarding")({
 function Onboarding() {
   const [step, setStep] = useState(0);
   const steps = ["Organization", "Departments", "First Repo", "Done"];
+  const goToDashboard = () => window.location.assign("/");
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12">
@@ -80,9 +81,16 @@ function Onboarding() {
             {step < steps.length - 1 ? (
               <Button onClick={() => setStep(step + 1)}>Continue</Button>
             ) : (
-              <Link to="/"><Button>Go to Dashboard</Button></Link>
+              <Button onClick={goToDashboard}>Go to Dashboard</Button>
             )}
           </div>
+          {step < steps.length - 1 && (
+            <div className="mt-4 text-center">
+              <Button variant="link" onClick={goToDashboard} className="h-auto p-0 text-sm">
+                Skip to Dashboard
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

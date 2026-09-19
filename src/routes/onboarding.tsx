@@ -42,6 +42,7 @@ function Onboarding() {
   const [inviteRole, setInviteRole] = useState<"member" | "admin">("member");
   const [pendingInvites, setPendingInvites] = useState<Array<{ id: string; invitedEmail: string }>>([]);
   const [isInviting, setIsInviting] = useState(false);
+  const goToDashboard = () => navigate({ to: "/" });
 
   useEffect(() => {
     const nextSlug = slugify(orgName || slug);
@@ -305,6 +306,13 @@ function Onboarding() {
               </Button>
             )}
           </div>
+          {step < 2 && (
+            <div className="mt-4 text-center">
+              <Button variant="link" onClick={goToDashboard} className="h-auto p-0 text-sm">
+                Skip to Dashboard
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

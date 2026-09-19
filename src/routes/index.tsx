@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -260,20 +260,12 @@ function Landing() {
 
 function Dashboard() {
   const { user } = useAuth();
-  const { currentOrg, orgs, loading: orgsLoading } = useCurrentOrg();
-  const navigate = useNavigate();
+  const { currentOrg } = useCurrentOrg();
   const [projects, setProjects] = useState<ImportedProject[]>([]);
   const [stats, setStats] = useState({ commits: 0, prs: 0, issues: 0, deploys: 0 });
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
-
-  // No org? Push to onboarding (Supabase-style first-run).
-  useEffect(() => {
-    if (!orgsLoading && user && orgs.length === 0) {
-      navigate({ to: "/onboarding" });
-    }
-  }, [orgsLoading, user, orgs.length, navigate]);
 
   useEffect(() => {
     let mounted = true;

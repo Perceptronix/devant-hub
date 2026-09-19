@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+build
 dist
 dist-ssr
 .output
@@ -15,6 +16,12 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+.env*
+
+# Vendored references and generated files kept local only
+reference-rest-api/
+.lovable/
+src/routeTree.gen.ts
 
 # Wrangler / Cloudflare
 .wrangler/

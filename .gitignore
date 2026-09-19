@@ -22,6 +22,7 @@ dist-ssr
 reference-rest-api/
 .lovable/
 src/routeTree.gen.ts
+.agents/
 
 # Wrangler / Cloudflare
 .wrangler/

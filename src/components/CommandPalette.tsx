@@ -8,7 +8,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { LayoutDashboard, FolderGit2, BarChart3, Settings, Bell, FolderOpen } from "lucide-react";
+import { LayoutDashboard, FolderGit2, BarChart3, Settings, Bell, FolderOpen, HeartPulse } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fetchImportedProjects, type ImportedProject } from "@/lib/imported-projects";
 
@@ -33,6 +33,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           <CommandItem onSelect={() => go(() => navigate({ to: "/" }))}><LayoutDashboard className="size-4 mr-2" /> Dashboard</CommandItem>
           <CommandItem onSelect={() => go(() => navigate({ to: "/projects" }))}><FolderGit2 className="size-4 mr-2" /> Projects</CommandItem>
           <CommandItem onSelect={() => go(() => navigate({ to: "/analytics" }))}><BarChart3 className="size-4 mr-2" /> Analytics</CommandItem>
+          <CommandItem onSelect={() => go(() => navigate({ to: "/health" }))}><HeartPulse className="size-4 mr-2" /> Health & Burn</CommandItem>
           <CommandItem onSelect={() => go(() => navigate({ to: "/notifications" }))}><Bell className="size-4 mr-2" /> Notifications</CommandItem>
           <CommandItem onSelect={() => go(() => navigate({ to: "/settings" }))}><Settings className="size-4 mr-2" /> Settings</CommandItem>
         </CommandGroup>

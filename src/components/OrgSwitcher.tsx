@@ -1,6 +1,5 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronsUpDown, Check, Plus, Building2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,60 +12,60 @@ import { useCurrentOrg } from "@/lib/current-org";
 
 export function OrgSwitcher() {
   const { orgs, currentOrg, switchOrg } = useCurrentOrg();
+  const navigate = useNavigate();
 
   if (orgs.length === 0) {
+    {/* ponytail: direct Link with standard button styles avoids asChild prop mismatches */}
     return (
-      <Button asChild variant="outline" size="sm" className="h-9 gap-2">
-        <Link to="/onboarding">
-          <Plus className="size-3.5" /> Create org
-        </Link>
-      </Button>
+      <Link
+        to="/onboarding"
+        className="inline-flex items-center justify-center rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium gap-2 text-foreground hover:bg-surface-elevated transition-colors"
+      >
+        <Plus className="size-3.5" /> Create org
+      </Link>
     );
   }
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 gap-2 max-w-[200px] justify-between"
-        >
-          <span className="flex items-center gap-2 min-w-0">
-            <Building2 className="size-3.5 shrink-0 text-primary" />
-            <span className="truncate text-sm">{currentOrg?.name ?? "Select org"}</span>
-          </span>
-          <ChevronsUpDown className="size-3.5 opacity-60" />
-        </Button>
+      <DropdownMenuTrigger className="inline-flex items-center justify-between rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium gap-2 text-foreground hover:bg-surface-elevated transition-colors max-w-[200px]">
+        <span className="flex items-center gap-2 min-w-0">
+          <Building2 className="size-3.5 shrink-0 text-primary" />
+          <span className="truncate text-xs">{currentOrg?.name ?? "Select org"}</span>
+        </span>
+        <ChevronsUpDown className="size-3.5 opacity-60 shrink-0" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">
+
+      <DropdownMenuContent align="start" className="w-64 bg-[#18181b] border-[#27272a] text-xs">
+        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
           Your organizations
         </DropdownMenuLabel>
         {orgs.map((org) => (
           <DropdownMenuItem
             key={org.id}
             onClick={() => switchOrg(org.id)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-xs text-zinc-200 hover:text-zinc-100 focus:bg-[#27272a] cursor-pointer"
           >
-            <Building2 className="size-4 text-muted-foreground" />
+            <Building2 className="size-4 text-muted-foreground shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-sm truncate">{org.name}</div>
-              <div className="text-[11px] text-muted-foreground truncate">{org.slug}</div>
+              <div className="text-xs truncate font-medium">{org.name}</div>
+              <div className="text-[10px] text-muted-foreground truncate">{org.slug}</div>
             </div>
-            {currentOrg?.id === org.id && <Check className="size-4 text-primary" />}
+            {currentOrg?.id === org.id && <Check className="size-4 text-primary shrink-0" />}
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/onboarding" className="flex items-center gap-2">
-            <Plus className="size-4" /> Create new organization
-          </Link>
+        <DropdownMenuSeparator className="bg-[#27272a]" />
+        <DropdownMenuItem
+          onClick={() => navigate({ to: "/onboarding" })}
+          className="flex items-center gap-2 text-xs text-zinc-200 hover:text-zinc-100 focus:bg-[#27272a] cursor-pointer"
+        >
+          <Plus className="size-4" /> Create new organization
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/settings" className="flex items-center gap-2">
-            Manage organizations
-          </Link>
+        <DropdownMenuItem
+          onClick={() => navigate({ to: "/settings" })}
+          className="flex items-center gap-2 text-xs text-zinc-200 hover:text-zinc-100 focus:bg-[#27272a] cursor-pointer"
+        >
+          Manage organizations
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

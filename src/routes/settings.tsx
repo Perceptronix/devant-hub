@@ -84,7 +84,9 @@ function Settings() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [creatingDept, setCreatingDept] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
   const [newOrgSlug, setNewOrgSlug] = useState("");
   const [newDeptName, setNewDeptName] = useState("");
@@ -203,7 +205,7 @@ function Settings() {
       return;
     }
 
-    setCreating(true);
+    setCreatingOrg(true);
     try {
       const supabase = getSupabase();
       const { data, error } = await supabase
@@ -227,7 +229,7 @@ function Settings() {
       console.error("Failed to create organization:", err);
       toast.error("Failed to create organization");
     } finally {
-      setCreating(false);
+      setCreatingOrg(false);
     }
   };
 
@@ -237,7 +239,7 @@ function Settings() {
       return;
     }
 
-    setCreating(true);
+    setCreatingDept(true);
     try {
       const supabase = getSupabase();
       const { data, error } = await supabase
@@ -258,7 +260,7 @@ function Settings() {
       console.error("Failed to create department:", err);
       toast.error("Failed to create department");
     } finally {
-      setCreating(false);
+      setCreatingDept(false);
     }
   };
 
@@ -275,7 +277,7 @@ function Settings() {
       return;
     }
 
-    setCreating(true);
+    setInviting(true);
     let inviteResult: {
       id: string;
       orgName: string;
@@ -379,7 +381,7 @@ function Settings() {
           : "Failed to send invite. Check that EmailJS client env vars are configured.";
       toast.error(errorMessage);
     } finally {
-      setCreating(false);
+      setInviting(false);
     }
   };
 
@@ -497,12 +499,14 @@ function Settings() {
 
             {/* Create Org */}
             <Card>
+              {orgs.some((org) => org.owner_id === user?.id) ? (
+                <p className="text-sm text-muted-foreground">
+                  You already own an organization. Delete it first to create a new one.
+                </p>
+              ) : (
               <Dialog open={openCreateOrg} onOpenChange={setOpenCreateOrg}>
                 <DialogTrigger asChild>
-                  <Button
-                    className="gap-1.5"
-                    disabled={orgs.some((org) => org.owner_id === user?.id)}
-                  >
+                  <Button className="gap-1.5">
                     <Plus className="size-4" /> Create Organization
                   </Button>
                 </DialogTrigger>
@@ -532,10 +536,10 @@ function Settings() {
                     </div>
                     <Button
                       onClick={handleCreateOrg}
-                      disabled={creating || !newOrgName.trim() || !newOrgSlug.trim()}
+                      disabled={creatingOrg || !newOrgName.trim() || !newOrgSlug.trim()}
                       className="w-full"
                     >
-                      {creating ? (
+                      {creatingOrg ? (
                         <>
                           <Loader2 className="size-4 mr-2 animate-spin" />
                           Creating...
@@ -547,6 +551,7 @@ function Settings() {
                   </div>
                 </DialogContent>
               </Dialog>
+              )}
             </Card>
 
             {/* Selected Org Details */}
@@ -624,10 +629,10 @@ function Settings() {
                             </div>
                             <Button
                               onClick={handleCreateDept}
-                              disabled={creating || !newDeptName.trim()}
+                              disabled={creatingDept || !newDeptName.trim()}
                               className="w-full"
                             >
-                              {creating ? (
+                              {creatingDept ? (
                                 <>
                                   <Loader2 className="size-4 mr-2 animate-spin" />
                                   Creating...
@@ -718,10 +723,10 @@ function Settings() {
                             </div>
                             <Button
                               onClick={handleInviteMember}
-                              disabled={creating || !inviteEmail.trim()}
+                              disabled={inviting || !inviteEmail.trim()}
                               className="w-full"
                             >
-                              {creating ? (
+                              {inviting ? (
                                 <>
                                   <Loader2 className="size-4 mr-2 animate-spin" />
                                   Sending...

@@ -1,16 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Check, Plus, ArrowRight, Users2, Github } from "lucide-react";
+import { Plus, ArrowRight, Github } from "lucide-react";
 import { useAuth, signInWithGitHub } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
 import { createOrgInvite } from "@/lib/org-invites";
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SS_STEP = "onboarding_step";
+const SS_ORG  = "onboarding_orgId";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Create your org — DevANT" }] }),
@@ -25,68 +26,63 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function clearSession() {
+  sessionStorage.removeItem(SS_STEP);
+  sessionStorage.removeItem(SS_ORG);
+}
+
 function Onboarding() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+
+  // Restore step/orgId from sessionStorage so nav away + back doesn't reset progress
+  const [step, setStepRaw] = useState(() => Number(sessionStorage.getItem(SS_STEP) ?? 0));
+  const [orgId, setOrgIdRaw] = useState<string | null>(() => sessionStorage.getItem(SS_ORG));
+
+  const setStep = (n: number) => { sessionStorage.setItem(SS_STEP, String(n)); setStepRaw(n); };
+  const setOrgId = (id: string) => { sessionStorage.setItem(SS_ORG, id); setOrgIdRaw(id); };
+
   const [orgName, setOrgName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [githubOrgLogin, setGithubOrgLogin] = useState("");
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [creating, setCreating] = useState(false);
-  const [orgId, setOrgId] = useState<string | null>(null);
   const [departments, setDepartments] = useState<string[]>(["Backend", "Design", "Platform"]);
   const [newDepartment, setNewDepartment] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"member" | "admin">("member");
   const [pendingInvites, setPendingInvites] = useState<Array<{ id: string; invitedEmail: string }>>([]);
   const [isInviting, setIsInviting] = useState(false);
-  const goToDashboard = () => navigate({ to: "/" });
 
+  // Auto-fill slug from org name (only when user hasn't manually edited slug)
+  const [slugEdited, setSlugEdited] = useState(false);
   useEffect(() => {
-    const nextSlug = slugify(orgName || slug);
-    if (!orgName.trim() && !slug.trim()) {
-      setSlugStatus("idle");
-      return;
-    }
+    if (!slugEdited && orgName) setSlug(slugify(orgName));
+  }, [orgName, slugEdited]);
 
-    const candidate = slug || nextSlug;
-    setSlug(candidate);
-    if (!candidate) {
-      setSlugStatus("invalid");
-      return;
-    }
-    if (!SLUG_REGEX.test(candidate)) {
-      setSlugStatus("invalid");
-      return;
-    }
-
+  // Debounced slug availability check
+  useEffect(() => {
+    if (!slug.trim()) { setSlugStatus("idle"); return; }
+    if (!SLUG_REGEX.test(slug)) { setSlugStatus("invalid"); return; }
     let mounted = true;
     setSlugStatus("checking");
     const timer = window.setTimeout(async () => {
       try {
-        const supabase = getSupabase();
-        const { data } = await supabase.from("organizations").select("id").eq("slug", candidate).limit(1);
-        if (!mounted) return;
-        setSlugStatus(data?.length ? "taken" : "available");
-      } catch (error) {
-        if (!mounted) return;
-        setSlugStatus("invalid");
+        const { data } = await getSupabase().from("organizations").select("id").eq("slug", slug).limit(1);
+        if (mounted) setSlugStatus(data?.length ? "taken" : "available");
+      } catch {
+        if (mounted) setSlugStatus("invalid");
       }
     }, 400);
-
-    return () => {
-      mounted = false;
-      window.clearTimeout(timer);
-    };
-  }, [orgName, slug]);
+    return () => { mounted = false; window.clearTimeout(timer); };
+  }, [slug]);
 
   const slugHint = useMemo(() => {
-    if (slugStatus === "checking") return "Checking slug availability…";
-    if (slugStatus === "taken") return "This slug is already taken.";
+    if (slugStatus === "checking")  return "Checking availability…";
+    if (slugStatus === "taken")     return "This slug is already taken.";
     if (slugStatus === "available") return "Slug is available.";
-    if (slugStatus === "invalid") return "Use lowercase letters, numbers and hyphens only.";
+    if (slugStatus === "invalid")   return "Lowercase letters, numbers and hyphens only.";
     return "Auto-generated from your organization name.";
   }, [slugStatus]);
 
@@ -97,11 +93,7 @@ function Onboarding() {
       await signInWithGitHub(`${window.location.origin}/onboarding`);
       return;
     }
-    if (!canCreateOrg) {
-      toast.error("Please choose a valid organization name and slug.");
-      return;
-    }
-
+    if (!canCreateOrg) { toast.error("Please choose a valid organization name and slug."); return; }
     setCreating(true);
     try {
       const supabase = getSupabase();
@@ -116,10 +108,7 @@ function Onboarding() {
         })
         .select("id, slug, name")
         .single();
-
-      if (error || !org) {
-        throw error ?? new Error("Failed to create organization.");
-      }
+      if (error || !org) throw error ?? new Error("Failed to create organization.");
 
       const { error: memberError } = await supabase.from("org_members").insert({
         org_id: org.id,
@@ -128,15 +117,13 @@ function Onboarding() {
         status: "accepted",
         joined_at: new Date().toISOString(),
       });
-      if (memberError) {
-        throw memberError;
-      }
+      if (memberError) throw memberError;
 
       setOrgId(org.id);
       setStep(1);
       toast.success("Organization created. Add your team next.");
-    } catch (error) {
-      console.error("onboarding create org", error);
+    } catch (err) {
+      console.error("onboarding create org", err);
       toast.error("Unable to create organization. Try a different slug.");
     } finally {
       setCreating(false);
@@ -146,17 +133,14 @@ function Onboarding() {
   const addDepartment = () => {
     const value = newDepartment.trim();
     if (!value || departments.includes(value)) return;
-    setDepartments((current) => [...current, value]);
+    setDepartments((cur) => [...cur, value]);
     setNewDepartment("");
   };
 
   const handleInviteMember = async () => {
     if (!user || !orgId) return;
     const email = inviteEmail.trim().toLowerCase();
-    if (!email || !email.includes("@")) {
-      toast.error("Enter a valid email address.");
-      return;
-    }
+    if (!email || !email.includes("@")) { toast.error("Enter a valid email address."); return; }
     setIsInviting(true);
     try {
       const result = await createOrgInvite({
@@ -169,14 +153,11 @@ function Onboarding() {
           baseUrl: window.location.origin,
         },
       });
-      setPendingInvites((current) => [
-        ...current,
-        { id: result.id, invitedEmail: result.invitedEmail },
-      ]);
+      setPendingInvites((cur) => [...cur, { id: result.id, invitedEmail: result.invitedEmail }]);
       setInviteEmail("");
       toast.success(`Invite sent to ${email}`);
-    } catch (error) {
-      console.error("Failed to send invite", error);
+    } catch (err) {
+      console.error("Failed to send invite", err);
       toast.error("Failed to send invite.");
     } finally {
       setIsInviting(false);
@@ -184,99 +165,127 @@ function Onboarding() {
   };
 
   const handleFinish = () => {
+    clearSession();
     navigate({ to: "/projects" });
   };
+
+  const goToDashboard = () => {
+    clearSession();
+    navigate({ to: "/" });
+  };
+
+  const STEPS = ["Organization", "Departments", "Invites"];
 
   return (
     <div className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-4xl">
-        <div className="flex flex-col gap-6 rounded-[32px] border border-white/10 bg-[#090a12]/95 p-8 shadow-[0_0_80px_rgba(108,99,255,0.12)]">
+        <div className="flex flex-col gap-6 rounded-xl border border-border bg-surface p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground uppercase tracking-[0.24em]">Onboarding</div>
-              <h1 className="mt-4 text-3xl font-display font-bold tracking-tight">Create your organization and invite your team.</h1>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Onboarding</p>
+              <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">Create your organization and invite your team.</h1>
             </div>
-            <Link to="/login" className="text-sm text-muted-foreground underline hover:text-foreground">Sign in</Link>
+            {/* ponytail: conditional render at the data level — no layout split needed because __root.tsx already isolates /onboarding from AppShell */}
+            {!user && <Link to="/login" className="text-sm text-muted-foreground underline hover:text-foreground">Sign in</Link>}
           </div>
 
-          <div className="flex items-center gap-3 overflow-x-auto rounded-full border border-white/10 bg-[#0f1120]/95 px-3 py-2 text-sm text-muted-foreground">
-            {[{ label: "Organization" }, { label: "Departments" }, { label: "Invites" }].map((item, index) => (
-              <div key={item.label} className={`rounded-full px-4 py-2 ${index === step ? "bg-primary text-black" : "bg-surface"}`}>
-                {item.label}
+          {/* Step indicator */}
+          <div className="flex items-center gap-2 text-sm">
+            {STEPS.map((label, i) => (
+              <div key={label} className="flex items-center gap-2">
+                <span className={`rounded-md px-3 py-1 text-xs font-medium ${i === step ? "bg-foreground text-background" : i < step ? "bg-surface-elevated text-foreground" : "bg-surface-elevated text-muted-foreground"}`}>
+                  {label}
+                </span>
+                {i < STEPS.length - 1 && <span className="text-border">›</span>}
               </div>
             ))}
           </div>
 
-          {step === 0 ? (
+          {/* Step content */}
+          {step === 0 && (
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-sm font-medium text-foreground">Organization name</label>
+                  <label className="text-sm font-medium">Organization name</label>
                   <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Acme Labs" className="mt-2" />
-                  <p className="mt-2 text-xs text-muted-foreground">Required, 2–50 characters.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Required, 2–50 characters.</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground">Organization slug</label>
-                  <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="acme-labs" className="mt-2" />
-                  <p className={`mt-2 text-xs ${slugStatus === "taken" || slugStatus === "invalid" ? "text-amber-400" : "text-muted-foreground"}`}>{slugHint}</p>
+                  <label className="text-sm font-medium">Slug</label>
+                  <Input
+                    value={slug}
+                    onChange={(e) => { setSlugEdited(true); setSlug(e.target.value); }}
+                    placeholder="acme-labs"
+                    className="mt-2"
+                  />
+                  <p className={`mt-1 text-xs ${slugStatus === "taken" || slugStatus === "invalid" ? "text-amber-400" : "text-muted-foreground"}`}>{slugHint}</p>
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground">Description</label>
+                <label className="text-sm font-medium">Description</label>
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A place to ship faster with your team" className="mt-2" />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground">GitHub org login</label>
+                <label className="text-sm font-medium">GitHub org login</label>
                 <Input value={githubOrgLogin} onChange={(e) => setGithubOrgLogin(e.target.value)} placeholder="github-org-login" className="mt-2" />
-                <p className="mt-2 text-xs text-muted-foreground">Optional. Connecting the GitHub org helps auto-link repos and members.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Optional. Helps auto-link repos and members.</p>
               </div>
             </div>
-          ) : step === 1 ? (
+          )}
+
+          {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-semibold">Add departments to organize your work.</h2>
-                <p className="text-sm text-muted-foreground mt-1">Departments are optional, but helpful for grouping projects and teams.</p>
+                <h2 className="text-lg font-semibold">Add departments</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Optional. Helpful for grouping projects and teams.</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {departments.map((department) => (
-                  <span key={department} className="rounded-full bg-surface px-4 py-2 text-sm">{department}</span>
+                {departments.map((d) => (
+                  <span key={d} className="rounded-md border border-border bg-surface-elevated px-3 py-1 text-sm">{d}</span>
                 ))}
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Input value={newDepartment} onChange={(e) => setNewDepartment(e.target.value)} placeholder="Add another department" />
-                <Button onClick={addDepartment} className="flex-none gap-2"><Plus className="size-4" /> Add</Button>
+              <div className="flex gap-2">
+                <Input
+                  value={newDepartment}
+                  onChange={(e) => setNewDepartment(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addDepartment()}
+                  placeholder="Add a department"
+                />
+                <Button onClick={addDepartment} variant="outline" className="gap-1.5 shrink-0"><Plus className="size-4" /> Add</Button>
               </div>
-              <p className="text-xs text-muted-foreground">You can manage departments later in organization settings.</p>
+              <p className="text-xs text-muted-foreground">You can manage departments later in settings.</p>
             </div>
-          ) : (
+          )}
+
+          {step === 2 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-semibold">Invite your first teammates</h2>
-                <p className="text-sm text-muted-foreground mt-1">Send invitations by email so your team can join the org immediately.</p>
+                <h2 className="text-lg font-semibold">Invite teammates</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Send invitations so your team can join immediately.</p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="team.member@example.com" />
+              <div className="flex gap-2">
+                <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleInviteMember()} placeholder="team.member@example.com" />
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as "member" | "admin")}
-                  className="rounded-xl border border-border bg-background px-3 py-3 text-sm text-foreground"
+                  className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                 >
                   <option value="member">Member</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex gap-2">
                 <Button onClick={handleInviteMember} disabled={isInviting || !inviteEmail.trim()} className="gap-2">
-                  <Github className="size-4" /> Send invite
+                  <Github className="size-4" />{isInviting ? "Sending…" : "Send invite"}
                 </Button>
-                <Button variant="outline" onClick={() => setInviteEmail("")}>Clear</Button>
+                <Button variant="outline" onClick={() => setInviteEmail("")} disabled={!inviteEmail}>Clear</Button>
               </div>
               {pendingInvites.length > 0 && (
-                <div className="rounded-3xl border border-border p-4">
-                  <div className="text-sm font-semibold mb-3">Pending invites</div>
+                <div className="rounded-md border border-border p-4">
+                  <p className="mb-2 text-sm font-medium">Pending invites</p>
                   <div className="flex flex-wrap gap-2">
-                    {pendingInvites.map((invite) => (
-                      <span key={invite.id} className="rounded-full bg-surface px-4 py-2 text-sm">{invite.invitedEmail}</span>
+                    {pendingInvites.map((inv) => (
+                      <span key={inv.id} className="rounded-md border border-border bg-surface-elevated px-3 py-1 text-sm">{inv.invitedEmail}</span>
                     ))}
                   </div>
                 </div>
@@ -284,35 +293,34 @@ function Onboarding() {
             </div>
           )}
 
-          <div className="flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-between sm:items-center">
-            <Button
-              variant="ghost"
-              onClick={() => setStep(Math.max(0, step - 1))}
-              disabled={step === 0}
-            >
+          {/* Navigation footer */}
+          <div className="flex items-center justify-between border-t border-border pt-5">
+            <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
               Back
             </Button>
-            {step === 0 ? (
-              <Button onClick={handleCreateOrg} disabled={creating || !canCreateOrg} className="gap-2">
-                {creating ? "Creating org…" : "Create organization"}
-              </Button>
-            ) : step === 1 ? (
-              <Button onClick={() => setStep(2)} className="gap-2">
-                Continue to invites <ArrowRight className="size-4" />
-              </Button>
-            ) : (
-              <Button onClick={handleFinish} className="gap-2">
-                Finish setup <ArrowRight className="size-4" />
-              </Button>
-            )}
-          </div>
-          {step < 2 && (
-            <div className="mt-4 text-center">
-              <Button variant="link" onClick={goToDashboard} className="h-auto p-0 text-sm">
-                Skip to Dashboard
-              </Button>
+            <div className="flex items-center gap-3">
+              {step < 2 && (
+                <Button variant="link" onClick={goToDashboard} className="h-auto p-0 text-sm text-muted-foreground">
+                  Skip
+                </Button>
+              )}
+              {step === 0 && (
+                <Button onClick={handleCreateOrg} disabled={creating || !canCreateOrg}>
+                  {creating ? "Creating…" : "Create organization"}
+                </Button>
+              )}
+              {step === 1 && (
+                <Button onClick={() => setStep(2)} className="gap-2">
+                  Continue <ArrowRight className="size-4" />
+                </Button>
+              )}
+              {step === 2 && (
+                <Button onClick={handleFinish} className="gap-2">
+                  Finish setup <ArrowRight className="size-4" />
+                </Button>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

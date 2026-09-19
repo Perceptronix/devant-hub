@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, FolderGit2, BarChart3, Bell, Settings,
-  ChevronsUpDown, LogOut, User as UserIcon, Menu, X,
+  ChevronsUpDown, LogOut, User as UserIcon, Menu, X, HeartPulse,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ const NAV = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/projects", icon: FolderGit2, label: "Projects" },
   { to: "/analytics", icon: BarChart3, label: "Analytics" },
+  { to: "/health", icon: HeartPulse, label: "Health" },
   { to: "/notifications", icon: Bell, label: "Notifications" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ] as const;

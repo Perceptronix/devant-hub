@@ -140,12 +140,10 @@ function InvitePage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-background">
         <div className="glass rounded-3xl p-8 w-full max-w-lg text-center">
-          <p className="text-sm text-muted-foreground">
-            This invitation is invalid or has expired.
-          </p>
-          <Button asChild className="mt-6">
-            <Link to="/">Back to DevANT</Link>
-          </Button>
+          {/* ponytail: direct Link elements avoid broken asChild wrappers */}
+          <Link to="/" className="mt-6 inline-flex items-center justify-center rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
+            Back to DevANT
+          </Link>
         </div>
       </div>
     );
@@ -217,9 +215,10 @@ function InvitePage() {
           >
             {declining ? "Declining…" : "Decline invitation"}
           </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link to="/notifications">View notifications</Link>
-          </Button>
+          {/* ponytail: direct Link elements avoid broken asChild wrappers */}
+          <Link to="/notifications" className="inline-flex items-center justify-center rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-elevated transition-colors">
+            View notifications
+          </Link>
         </div>
 
         {user && !isInviteEmail && !loading && (

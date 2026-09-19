@@ -58,21 +58,20 @@ function Home() {
 function Landing() {
   return (
     <div className="min-h-screen bg-[#05060d] text-white">
-      <div className="relative overflow-hidden">
-        {/* ambient glows */}
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute top-[-10%] left-[10%] h-[500px] w-[500px] rounded-full bg-primary/25 blur-[140px]" />
-          <div className="absolute top-[20%] right-[-5%] h-[400px] w-[400px] rounded-full bg-cyan-500/20 blur-[120px]" />
-          <div className="absolute bottom-[-10%] left-[40%] h-[400px] w-[400px] rounded-full bg-emerald-500/15 blur-[140px]" />
-        </div>
-
-        {/* nav */}
-        <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
+      {/* nav — outside overflow-hidden so sticky works */}
+      <header className="sticky top-0 z-50 bg-[#05060d]/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
           <Logo />
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-            <a href="#product" className="hover:text-foreground transition">Product</a>
-            <a href="#features" className="hover:text-foreground transition">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition">Pricing</a>
+            {["product", "features", "pricing"].map((id) => (
+              <button
+                key={id}
+                onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+                className="capitalize hover:text-foreground transition"
+              >
+                {id}
+              </button>
+            ))}
           </nav>
           <div className="flex items-center gap-3">
             <Link
@@ -88,10 +87,19 @@ function Landing() {
               <Github className="size-4" /> Start free
             </Button>
           </div>
-        </header>
+        </div>
+      </header>
+
+      <div className="relative overflow-hidden">
+        {/* ambient glows */}
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute top-[-10%] left-[10%] h-[500px] w-[500px] rounded-full bg-primary/25 blur-[140px]" />
+          <div className="absolute top-[20%] right-[-5%] h-[400px] w-[400px] rounded-full bg-cyan-500/20 blur-[120px]" />
+          <div className="absolute bottom-[-10%] left-[40%] h-[400px] w-[400px] rounded-full bg-emerald-500/15 blur-[140px]" />
+        </div>
 
         {/* hero */}
-        <section className="mx-auto max-w-7xl px-6 pt-10 pb-24 lg:px-10 lg:pt-16">
+        <section id="product" className="mx-auto max-w-7xl px-6 pt-10 pb-24 lg:px-10 lg:pt-16">
           <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div className="space-y-8">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
@@ -243,8 +251,8 @@ function Landing() {
             <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-7">
               <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Enterprise</p>
               <p className="mt-4 font-display text-4xl font-bold">Custom</p>
-              <p className="mt-3 text-sm text-muted-foreground">SSO, audit logs, dedicated support, SLA.</p>
-              <Button asChild className="mt-7 w-full" variant="outline"><a href="mailto:hello@devant.app">Contact sales</a></Button>
+              {/* ponytail: direct link styling instead of asChild wrapper */}
+              <a href="mailto:hello@devant.app" className="mt-7 flex w-full items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-elevated transition-colors">Contact sales</a>
             </div>
           </div>
         </section>
@@ -345,16 +353,13 @@ function Dashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button asChild className="gap-2">
-              <Link to="/projects">
-                <Plus className="size-4" /> New project
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="gap-2">
-              <Link to="/analytics">
-                <Activity className="size-4" /> Analytics
-              </Link>
-            </Button>
+            {/* ponytail: direct Link elements avoid broken asChild wrappers */}
+            <Link to="/projects" className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
+              <Plus className="size-4" /> New project
+            </Link>
+            <Link to="/analytics" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-elevated transition-colors">
+              <Activity className="size-4" /> Analytics
+            </Link>
           </div>
         </div>
       </div>
@@ -404,11 +409,9 @@ function Dashboard() {
             <p className="mt-2 text-sm text-muted-foreground">
               Import your first GitHub repository to start tracking commits, PRs, and deploys.
             </p>
-            <Button asChild className="mt-6 gap-2">
-              <Link to="/projects">
-                <Plus className="size-4" /> Import a repo
-              </Link>
-            </Button>
+            <Link to="/projects" className="mt-6 inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
+              <Plus className="size-4" /> Import a repo
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

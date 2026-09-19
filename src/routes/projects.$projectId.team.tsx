@@ -2,6 +2,7 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Crown, Users2, GitFork, Link2 } from "lucide-react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
@@ -159,15 +160,14 @@ function Team() {
   const collaborators = members.filter((m) => m.role === "collaborator");
   const contributors = members.filter((m) => m.role === "contributor");
 
+  const showSkeleton = loading && members.length === 0;
+
   return (
     <>
       <h1 className="text-2xl font-display font-bold mb-4">Team</h1>
-      {loading && members.length === 0 ? (
-        <div className="glass rounded-xl p-6 text-sm text-muted-foreground">Loading team…</div>
-      ) : null}
 
       <Section title="Owner" icon={Crown} accent="warning">
-        {owner ? (
+        {showSkeleton ? <SkeletonMemberCard /> : owner ? (
           <MemberCard m={owner} linked={linkedLogins.has(owner.login.toLowerCase())} />
         ) : (
           <Empty />
@@ -175,7 +175,9 @@ function Team() {
       </Section>
       <Section title="Collaborators" icon={Users2} accent="primary">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {collaborators.length === 0 ? (
+          {showSkeleton ? (
+            <>{Array.from({ length: 2 }).map((_, i) => <SkeletonMemberCard key={i} />)}</>
+          ) : collaborators.length === 0 ? (
             <Empty />
           ) : (
             collaborators.map((m) => (
@@ -186,7 +188,9 @@ function Team() {
       </Section>
       <Section title="Contributors" icon={GitFork} accent="cyan">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {contributors.length === 0 ? (
+          {showSkeleton ? (
+            <>{Array.from({ length: 3 }).map((_, i) => <SkeletonMemberCard key={i} />)}</>
+          ) : contributors.length === 0 ? (
             <Empty />
           ) : (
             contributors.map((m) => <MemberCard key={m.login} m={m} />)
@@ -194,6 +198,21 @@ function Team() {
         </div>
       </Section>
     </>
+  );
+}
+
+function SkeletonMemberCard() {
+  return (
+    <div className="glass rounded-xl p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="size-12 rounded-full shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-3 w-36" />
+        </div>
+      </div>
+    </div>
   );
 }
 

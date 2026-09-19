@@ -36,7 +36,7 @@ export function StatCard({ label, value, delta, icon: Icon, accent }: {
   };
 
   return (
-    <div className="glass glass-hover rounded-xl p-5 animate-fade-up">
+    <div className="glass glass-hover rounded-xl p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{label}</div>
         {Icon && (

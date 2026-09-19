@@ -1,3 +1,5 @@
+/// <reference types="vitest/config" />
+
 // @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
 // or the app will break with duplicate plugins:
 //   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, cloudflare (build-only),
@@ -9,6 +11,13 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 // @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
 export default defineConfig({
+  vite: {
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: ["./src/test-setup.ts"],
+    },
+  },
   tanstackStart: {
     server: { entry: "server" },
   },

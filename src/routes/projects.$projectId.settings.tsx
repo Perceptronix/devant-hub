@@ -1,7 +1,7 @@
 import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Unlink, RefreshCw } from "lucide-react";
+import { Unlink, RefreshCw, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
 import { removeImportedProject } from "@/lib/imported-projects";
@@ -21,6 +21,13 @@ function ProjectSettings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [disconnecting, setDisconnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  function handleSync() {
+    setSyncing(true);
+    emitSync(project.id);
+    window.setTimeout(() => setSyncing(false), 500);
+  }
 
   async function disconnect() {
     if (!user || !project) return;
@@ -45,8 +52,8 @@ function ProjectSettings() {
       <div className="glass rounded-xl p-5 mb-4 max-w-2xl">
         <div className="text-xs uppercase text-muted-foreground tracking-wider mb-2">Sync</div>
         <p className="text-sm text-muted-foreground mb-3">Refetch live data from GitHub for this project.</p>
-        <Button variant="outline" className="gap-1.5" onClick={() => emitSync(project.id)}>
-          <RefreshCw className="size-4" /> Sync now
+        <Button variant="outline" className="gap-1.5" onClick={handleSync} disabled={syncing}>
+          {syncing ? <><Loader2 className="size-4 animate-spin" /> Syncing…</> : <><RefreshCw className="size-4" /> Sync now</>}
         </Button>
       </div>
 

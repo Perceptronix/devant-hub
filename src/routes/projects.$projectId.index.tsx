@@ -4,6 +4,7 @@ import { useAuth, getGitHubToken } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
 import { getRepo, listCommits, listPulls, listIssues, listDeployments } from "@/lib/github/client";
 import { StatCard } from "@/components/StatCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GitCommit, GitPullRequest, Bug, Rocket } from "lucide-react";
 import { useSyncListener } from "@/lib/sync";
 
@@ -16,7 +17,7 @@ function ProjectOverview() {
   const { project } = useProject(projectId);
   const { user } = useAuth();
   const [stats, setStats] = useState({ commits: 0, openPRs: 0, openIssues: 0, deployments: 0, stars: 0, forks: 0 });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
 
@@ -53,6 +54,34 @@ function ProjectOverview() {
 
   if (!project) return null;
 
+  if (loading) return (
+    <>
+      <div className="mb-6">
+        <Skeleton className="h-8 w-48 mb-2" />
+        <Skeleton className="h-4 w-32" />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="glass rounded-xl p-5 space-y-3">
+            <div className="flex items-start justify-between">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="size-8 rounded-lg" />
+            </div>
+            <Skeleton className="h-8 w-16" />
+          </div>
+        ))}
+      </div>
+      <div className="glass rounded-xl p-5">
+        <Skeleton className="h-4 w-48 mb-3" />
+        <div className="flex gap-3">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <>
       <div className="mb-6">
@@ -69,9 +98,7 @@ function ProjectOverview() {
       </div>
 
       <div className="glass rounded-xl p-5">
-        <div className="text-sm text-muted-foreground">
-          {loading ? "Loading live GitHub data…" : "Choose a section from the sidebar to drill in."}
-        </div>
+        <div className="text-sm text-muted-foreground">Choose a section from the sidebar to drill in.</div>
         <div className="mt-3 flex gap-3 text-xs">
           <Link to="/projects/$projectId/commits" params={{ projectId }} className="text-primary hover:underline">View commits →</Link>
           <Link to="/projects/$projectId/pulls" params={{ projectId }} className="text-primary hover:underline">Pull requests →</Link>

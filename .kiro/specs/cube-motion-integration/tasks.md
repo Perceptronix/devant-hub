@@ -6,7 +6,7 @@ Install cube-motion, then wire its React components into six surfaces in sequenc
 
 ## Tasks
 
-- [ ] 1. Install cube-motion and set up test infrastructure
+- [x] 1. Install cube-motion and set up test infrastructure
   - Run `npm i cube-motion` to add the library as a production dependency
   - Run `npm i -D vitest @testing-library/react @testing-library/jest-dom jsdom fast-check` for testing
   - Add `test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'] }` to `vite.config.ts`
@@ -15,7 +15,7 @@ Install cube-motion, then wire its React components into six surfaces in sequenc
   - Verify `import { Rise, Reveal, Morph } from 'cube-motion/react'` resolves without TypeScript errors
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2. Clean up StatCard — remove conflicting animate-fade-up class
+- [x] 2. Clean up StatCard — remove conflicting animate-fade-up class
   - In `src/components/StatCard.tsx`, remove `animate-fade-up` from the root div className
   - This prevents double-animation when cube-motion wraps the stat grid
   - _Requirements: 3.3_
@@ -24,7 +24,7 @@ Install cube-motion, then wire its React components into six surfaces in sequenc
     - Render `<StatCard label="X" value={0} />` and assert the root element does not have the `animate-fade-up` class
     - _Requirements: 3.3_
 
-- [ ] 3. Implement Dashboard animations (`src/routes/index.tsx`)
+- [x] 3. Implement Dashboard animations (`src/routes/index.tsx`)
   - Import `Rise` and `Reveal` from `cube-motion/react`
   - Wrap the greeting hero `<div>` in `<Rise>` (no show prop — mount-only)
   - Wrap the stat card grid items with `<Rise>` and add `style={{ animationDelay: \`${i * 80}ms\` }}` to each card wrapper at index `i`
@@ -46,10 +46,10 @@ Install cube-motion, then wire its React components into six surfaces in sequenc
     - Test: skeletons have no Rise/Reveal wrapper when projectsLoading === true
     - _Requirements: 2.1, 4.1, 4.2, 4.3_
 
-- [ ] 4. Checkpoint — ensure all tests pass
+- [x] 4. Checkpoint — ensure all tests pass
   - Run `npm test` and confirm all tests pass before continuing.
 
-- [ ] 5. Implement Projects page animations (`src/routes/projects.index.tsx`)
+- [x] 5. Implement Projects page animations (`src/routes/projects.index.tsx`)
   - Import `Rise`, `Reveal`, `Morph` from `cube-motion/react`
   - Wrap the project card grid in `<Reveal targets="children">` when `linkedProjects.length > 0`
   - Wrap the empty-state block in `<Rise>` when `linkedProjects.length === 0 && !projectsLoading`
@@ -67,7 +67,7 @@ Install cube-motion, then wire its React components into six surfaces in sequenc
     - Test: Sync button Morph `active` is true immediately after click and false after 1 500 ms (use fake timers)
     - _Requirements: 5.1, 5.2, 5.3, 11.1_
 
-- [ ] 6. Implement Health & Burn dashboard animations (`src/routes/health.tsx`)
+- [x] 6. Implement Health & Burn dashboard animations (`src/routes/health.tsx`)
   - Import `Rise` from `cube-motion/react`
   - Wrap the KPI strip `<div>` in `<Rise show={!loading}>` — the show prop drives leave-on-hide/rise-on-show
   - Wrap `<TableBody>` content in `<Rise show={!loading && scores.length > 0}>`
@@ -83,7 +83,7 @@ Install cube-motion, then wire its React components into six surfaces in sequenc
     - Test: ScoreBar root still has `motion-reduce:transition-none` class (Req 12.3)
     - _Requirements: 6.1, 6.2, 6.3, 7.1, 8.1, 12.3_
 
-- [ ] 7. Implement Notifications page animations (`src/routes/notifications.tsx`)
+- [x] 7. Implement Notifications page animations (`src/routes/notifications.tsx`)
   - Import `Rise` from `cube-motion/react`
   - Wrap the org invite items section (the `{invites.length > 0 && ...}` block) in a single `<Rise>`
   - Wrap the GitHub activity items list (the `{items.map(...)}` block) in a single `<Rise>`
@@ -96,7 +96,7 @@ Install cube-motion, then wire its React components into six surfaces in sequenc
     - Tag: `Feature: cube-motion-integration, Property 2: notifications list has exactly one Rise wrapper per section`
     - **Validates: Requirements 9.3**
 
-- [ ] 8. Implement Onboarding step transition animations (`src/routes/onboarding.tsx`)
+- [x] 8. Implement Onboarding step transition animations (`src/routes/onboarding.tsx`)
   - Import `Rise` and `Morph` from `cube-motion/react`
   - Wrap each step panel content block (the three `{step === N && (...)}` branches) in `<Rise key={step}>`
   - The `key={step}` prop ensures React unmounts and remounts Rise on step change, re-triggering the entrance animation
@@ -117,7 +117,7 @@ Install cube-motion, then wire its React components into six surfaces in sequenc
     - Test: invite Morph `active` prop tracks `isInviting` state
     - _Requirements: 10.3, 11.2_
 
-- [ ] 9. Final checkpoint — ensure all tests pass
+- [x] 9. Final checkpoint — ensure all tests pass
   - Run `npm test` and confirm all tests pass, ask the user if any questions arise.
 
 ## Notes

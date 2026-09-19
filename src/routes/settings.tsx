@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
 import { emitSync } from "@/lib/sync";
 import { Github, Sun, Moon, Plus, Trash2, Loader2, Copy, Mail, Check, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
 import {
@@ -84,6 +85,7 @@ function Settings() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingOrgData, setLoadingOrgData] = useState(false);
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [creatingDept, setCreatingDept] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -163,6 +165,7 @@ function Settings() {
     }
     let mounted = true;
     (async () => {
+      setLoadingOrgData(true);
       try {
         const supabase = getSupabase();
         const [{ data: deptData }, { data: membersData }] = await Promise.all([
@@ -183,6 +186,8 @@ function Settings() {
         setMembers((membersData || []) as OrgMember[]);
       } catch (err) {
         console.error("Failed to load org data:", err);
+      } finally {
+        if (mounted) setLoadingOrgData(false);
       }
     })();
     return () => {
@@ -646,7 +651,18 @@ function Settings() {
                       </Dialog>
                     )}
                   </div>
-                  {departments.length === 0 ? (
+                  {loadingOrgData ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
+                          <div className="space-y-1.5">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : departments.length === 0 ? (
                     <div className="text-sm text-muted-foreground">No departments yet</div>
                   ) : (
                     <div className="space-y-2">
@@ -740,7 +756,21 @@ function Settings() {
                       </Dialog>
                     )}
                   </div>
-                  {members.length === 0 ? (
+                  {loadingOrgData ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="size-9 rounded-full shrink-0" />
+                            <div className="space-y-1.5">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : members.length === 0 ? (
                     <div className="text-sm text-muted-foreground">No members yet</div>
                   ) : (
                     <div className="space-y-2">

@@ -8,6 +8,7 @@ import { Plus, ArrowRight, Github } from "lucide-react";
 import { useAuth, signInWithGitHub } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
 import { createOrgInvite } from "@/lib/org-invites";
+import { Morph, Rise } from "cube-motion/react";
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SS_STEP = "onboarding_step";
@@ -203,7 +204,7 @@ function Onboarding() {
 
           {/* Step content */}
           {step === 0 && (
-            <div className="space-y-4">
+            <Rise key={step}><div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium">Organization name</label>
@@ -230,11 +231,11 @@ function Onboarding() {
                 <Input value={githubOrgLogin} onChange={(e) => setGithubOrgLogin(e.target.value)} placeholder="github-org-login" className="mt-2" />
                 <p className="mt-1 text-xs text-muted-foreground">Optional. Helps auto-link repos and members.</p>
               </div>
-            </div>
+            </div></Rise>
           )}
 
           {step === 1 && (
-            <div className="space-y-4">
+            <Rise key={step}><div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold">Add departments</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Optional. Helpful for grouping projects and teams.</p>
@@ -254,11 +255,11 @@ function Onboarding() {
                 <Button onClick={addDepartment} variant="outline" className="gap-1.5 shrink-0"><Plus className="size-4" /> Add</Button>
               </div>
               <p className="text-xs text-muted-foreground">You can manage departments later in settings.</p>
-            </div>
+            </div></Rise>
           )}
 
           {step === 2 && (
-            <div className="space-y-4">
+            <Rise key={step}><div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold">Invite teammates</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Send invitations so your team can join immediately.</p>
@@ -276,7 +277,7 @@ function Onboarding() {
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleInviteMember} disabled={isInviting || !inviteEmail.trim()} className="gap-2">
-                  <Github className="size-4" />{isInviting ? "Sending…" : "Send invite"}
+                  <Github className="size-4" /><Morph active={isInviting} off="Send invite" on="Sending…" />
                 </Button>
                 <Button variant="outline" onClick={() => setInviteEmail("")} disabled={!inviteEmail}>Clear</Button>
               </div>
@@ -290,7 +291,7 @@ function Onboarding() {
                   </div>
                 </div>
               )}
-            </div>
+            </div></Rise>
           )}
 
           {/* Navigation footer */}

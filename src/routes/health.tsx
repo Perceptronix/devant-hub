@@ -17,6 +17,7 @@ import {
 import { AlertTriangle, ArrowUpDown, CheckCircle2, FolderGit2, TrendingUp } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
+import { Rise } from "cube-motion/react";
 
 export const Route = createFileRoute("/health")({
   head: () => ({ meta: [{ title: "Health — DevANT" }] }),
@@ -193,6 +194,8 @@ function HealthDrawer({ score, onClose }: { score: HealthScore | null; onClose: 
               </div>
             </SheetHeader>
 
+            <Rise>
+              <>
             {/* score pair */}
             <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
               {[
@@ -263,6 +266,8 @@ function HealthDrawer({ score, onClose }: { score: HealthScore | null; onClose: 
                 Open project
               </Link>
             </div>
+              </>
+            </Rise>
           </>
         )}
       </SheetContent>
@@ -396,6 +401,7 @@ function HealthDashboard() {
       )}
 
       {/* Metrics strip — KPI cards with inline sparklines */}
+      <Rise show={!loading}>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-md overflow-hidden mb-4 border border-border">
         {[
           {
@@ -439,6 +445,7 @@ function HealthDashboard() {
           </div>
         ))}
       </div>
+      </Rise>
 
       {/* Table */}
       <div className="rounded-md border border-border overflow-hidden">
@@ -493,7 +500,7 @@ function HealthDashboard() {
                 <SortHead col="burnAlert" className="pr-4">Burn</SortHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <Rise as={TableBody} show={!loading && scores.length > 0}>
               {sorted.map((s) => (
                 <TableRow
                   key={s.projectId}
@@ -529,7 +536,7 @@ function HealthDashboard() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </Rise>
           </Table>
         )}
       </div>

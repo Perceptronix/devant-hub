@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, GitPullRequest, Bug, Clock, RefreshCw, Unlink, Loader2 } from "lucide-react";
+import { Plus, GitPullRequest, Bug, Clock, Unlink, Loader2 } from "lucide-react";
+import { Morph, Reveal, Rise } from "cube-motion/react";
 import { useState, useEffect } from "react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { listUserRepos } from "@/lib/github/client";
@@ -33,6 +34,7 @@ function Projects() {
   const [fetchingRepos, setFetchingRepos] = useState(false);
   const [search, setSearch] = useState("");
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [importingId, setImportingId] = useState<number | string | null>(null);
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
@@ -110,6 +112,12 @@ function Projects() {
     setDisconnectingId(null);
   }
 
+  function handleSync(projectId: string) {
+    setSyncingId(projectId);
+    emitSync(projectId);
+    window.setTimeout(() => setSyncingId(null), 1500);
+  }
+
   const importedKeys = new Set(linkedProjects.map((p) => `${p.owner}/${p.repo}`.toLowerCase()));
   const importedIds = new Set(linkedProjects.map((p) => String(p.github_repo_id ?? p.id)));
   const filteredRepos = repos
@@ -136,13 +144,16 @@ function Projects() {
           {[0, 1, 2].map((i) => <Skeleton key={i} className="h-44 rounded-xl" />)}
         </div>
       ) : linkedProjects.length === 0 ? (
-        <div className="glass rounded-xl p-6">
+        <Rise>
+          <div className="glass rounded-xl p-6">
           <h2 className="font-display font-semibold text-lg">No linked projects yet</h2>
           <p className="text-sm text-muted-foreground mt-2">Click <b>New Project+</b> to import a GitHub repository.</p>
           <Button onClick={() => setOpen(true)} className="gap-1.5 mt-4"><Plus className="size-4" /> New Project+</Button>
-        </div>
+          </div>
+        </Rise>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <Reveal targets="children">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {linkedProjects.map((p) => (
             <div key={p.id} className="glass glass-hover rounded-xl p-5">
               <div className="flex items-start justify-between mb-3">
@@ -164,8 +175,8 @@ function Projects() {
                   <span className="flex items-center gap-1"><Bug className="size-3.5" /> live</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs" onClick={() => emitSync(p.id)}>
-                    <RefreshCw className="size-3" /> Sync
+                  <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs" onClick={() => handleSync(p.id)}>
+                    <Morph active={syncingId === p.id} off="Sync" on="Synced" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -188,7 +199,8 @@ function Projects() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        </Reveal>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>

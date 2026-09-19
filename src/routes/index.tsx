@@ -25,6 +25,7 @@ import { useCurrentOrg } from "@/lib/current-org";
 import { AppShell } from "@/components/AppShell";
 import { Logo } from "@/components/Logo";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Rise, Reveal } from "cube-motion/react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -336,7 +337,8 @@ function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-primary/15 via-[#0c0e1c]/60 to-cyan-500/10 p-8">
+      <Rise>
+        <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-primary/15 via-[#0c0e1c]/60 to-cyan-500/10 p-8">
         <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-16 -left-10 h-52 w-52 rounded-full bg-cyan-500/20 blur-3xl" />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -362,18 +364,21 @@ function Dashboard() {
             </Link>
           </div>
         </div>
-      </div>
+        </div>
+      </Rise>
 
       {/* Stat grid */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <Rise>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: "Commits", value: stats.commits, icon: GitCommit, tone: "from-primary/20 to-primary/5", iconColor: "text-primary" },
           { label: "Open PRs", value: stats.prs, icon: GitPullRequest, tone: "from-emerald-500/20 to-emerald-500/5", iconColor: "text-emerald-400" },
           { label: "Open Issues", value: stats.issues, icon: Bug, tone: "from-amber-500/20 to-amber-500/5", iconColor: "text-amber-400" },
           { label: "Deployments", value: stats.deploys, icon: Rocket, tone: "from-cyan-500/20 to-cyan-500/5", iconColor: "text-cyan-400" },
-        ].map((s) => (
+        ].map((s, i) => (
           <div
             key={s.label}
+            style={{ animationDelay: `${i * 80}ms` }}
             className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${s.tone} p-5`}
           >
             <div className="flex items-center justify-between">
@@ -383,7 +388,8 @@ function Dashboard() {
             <p className="mt-3 font-display text-3xl font-bold">{loading ? "—" : s.value}</p>
           </div>
         ))}
-      </div>
+        </div>
+      </Rise>
 
       {/* Projects */}
       <div>
@@ -395,11 +401,13 @@ function Dashboard() {
         </div>
 
         {projectsLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Reveal targets="children">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-36 rounded-2xl" />
             ))}
-          </div>
+            </div>
+          </Reveal>
         ) : projects.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
             <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">

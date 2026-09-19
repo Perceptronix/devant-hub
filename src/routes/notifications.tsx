@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Bell, Check, Mail, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth, getGitHubToken } from "@/lib/auth";
@@ -11,6 +12,7 @@ import { getReadIds, markRead } from "@/lib/notifications-store";
 import { useSyncListener, emitSync } from "@/lib/sync";
 import { getSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Rise } from "cube-motion/react";
 
 type N = { id: string; type: string; text: string; time: string; read: boolean; ts: number };
 type OrgInvite = { id: string; org_id: string; org_name: string; invited_by: string; invited_at: string; status: string };
@@ -24,6 +26,7 @@ function Notifications() {
   const { user } = useAuth();
   const [items, setItems] = useState<N[]>([]);
   const [invites, setInvites] = useState<OrgInvite[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   useSyncListener(() => setTick((n) => n + 1));
@@ -77,11 +80,12 @@ function Notifications() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      if (!user) { setItems([]); return; }
+      if (!user) { setItems([]); setLoading(false); return; }
       const projects = await fetchImportedProjects(user.id);
       const token = getGitHubToken(user);
-      if (!token || projects.length === 0) { setItems([]); return; }
-
+      if (!token || projects.length === 0) { setItems([]); setLoading(false); return; }
+      setLoading(true);
+      try {
       const all: N[] = [];
       const read = getReadIds();
       for (const p of projects) {
@@ -99,6 +103,7 @@ function Notifications() {
       setItems(sorted);
       try { window.localStorage.setItem("devant.notifications.unread", String(sorted.filter((n) => !n.read).length)); } catch { /* noop */ }
       window.dispatchEvent(new CustomEvent("devant:notifications-changed"));
+      } finally { if (mounted) setLoading(false); }
     })();
     return () => { mounted = false; };
   }, [user, tick]);
@@ -157,6 +162,7 @@ function Notifications() {
         {invites.length > 0 && (
           <>
             <div className="text-sm font-semibold text-muted-foreground px-1 pt-4">Organization Invites</div>
+            <Rise>
             {invites.map((inv) => (
               <div key={inv.id} className="glass glass-hover rounded-xl p-4 flex items-start gap-3">
                 <div className="size-9 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
@@ -192,12 +198,27 @@ function Notifications() {
                 </div>
               </div>
             ))}
+            </Rise>
           </>
         )}
 
         {/* GitHub Notifications */}
-        {items.length > 0 && <div className="text-sm font-semibold text-muted-foreground px-1 pt-4">GitHub Activity</div>}
-        {user && items.length === 0 && invites.length === 0 && <div className="glass rounded-xl p-6 text-sm text-muted-foreground">No notifications yet.</div>}
+        {loading ? (
+          <div className="space-y-2 mt-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="glass rounded-xl p-4 flex items-start gap-3">
+                <Skeleton className="size-9 rounded-lg shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {!loading && items.length > 0 && <div className="text-sm font-semibold text-muted-foreground px-1 pt-4">GitHub Activity</div>}
+        {!loading && user && items.length === 0 && invites.length === 0 && <div className="glass rounded-xl p-6 text-sm text-muted-foreground">No notifications yet.</div>}
+        {items.length > 0 && <Rise>
         {items.map((n) => (
           <div key={n.id} className={`glass glass-hover rounded-xl p-4 flex items-start gap-3 ${!n.read ? "border-primary/30" : ""}`}>
             <div className="size-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center"><Bell className="size-4" /></div>
@@ -208,6 +229,7 @@ function Notifications() {
             {!n.read && <span className="size-2 rounded-full bg-primary mt-2" />}
           </div>
         ))}
+        </Rise>}
       </div>
     </>
   );

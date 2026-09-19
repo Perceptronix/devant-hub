@@ -24,6 +24,7 @@ import { useSyncListener } from "@/lib/sync";
 import { useCurrentOrg } from "@/lib/current-org";
 import { AppShell } from "@/components/AppShell";
 import { Logo } from "@/components/Logo";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -264,6 +265,7 @@ function Dashboard() {
   const [projects, setProjects] = useState<ImportedProject[]>([]);
   const [stats, setStats] = useState({ commits: 0, prs: 0, issues: 0, deploys: 0 });
   const [loading, setLoading] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
 
@@ -272,6 +274,7 @@ function Dashboard() {
     (async () => {
       if (!user) {
         setProjects([]);
+        setProjectsLoading(false);
         return;
       }
       const all = await fetchImportedProjects(user.id);
@@ -280,6 +283,7 @@ function Dashboard() {
         : all;
       if (!mounted) return;
       setProjects(list);
+      setProjectsLoading(false);
       const token = getGitHubToken(user);
       if (!token || list.length === 0) return;
       setLoading(true);
@@ -385,7 +389,13 @@ function Dashboard() {
           </Link>
         </div>
 
-        {projects.length === 0 ? (
+        {projectsLoading ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-36 rounded-2xl" />
+            ))}
+          </div>
+        ) : projects.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
             <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
               <FolderGit2 className="size-6" />

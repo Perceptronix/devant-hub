@@ -12,11 +12,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  fetchImportedProjects, insertImportedProject, removeImportedProject, ImportedProject,
+import { fetchImportedProjects, insertImportedProject, removeImportedProject, ImportedProject,
 } from "@/lib/imported-projects";
 import { emitSync, useSyncListener } from "@/lib/sync";
 import { useCurrentOrg } from "@/lib/current-org";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/projects/")({
   head: () => ({ meta: [{ title: "Projects — DevANT" }] }),
@@ -29,6 +29,7 @@ function Projects() {
   const { currentOrg } = useCurrentOrg();
   const [repos, setRepos] = useState<any[]>([]);
   const [allProjects, setAllProjects] = useState<ImportedProject[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [fetchingRepos, setFetchingRepos] = useState(false);
   const [search, setSearch] = useState("");
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -43,10 +44,11 @@ function Projects() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      if (!user) { setAllProjects([]); return; }
+      if (!user) { setAllProjects([]); setProjectsLoading(false); return; }
       const projects = await fetchImportedProjects(user.id);
       if (!mounted) return;
       setAllProjects(projects);
+      setProjectsLoading(false);
     })();
     return () => { mounted = false; };
   }, [user, tick]);
@@ -129,7 +131,11 @@ function Projects() {
         action={<Button onClick={() => setOpen(true)} className="gap-1.5"><Plus className="size-4" /> New Project+</Button>}
       />
 
-      {linkedProjects.length === 0 ? (
+      {projectsLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-44 rounded-xl" />)}
+        </div>
+      ) : linkedProjects.length === 0 ? (
         <div className="glass rounded-xl p-6">
           <h2 className="font-display font-semibold text-lg">No linked projects yet</h2>
           <p className="text-sm text-muted-foreground mt-2">Click <b>New Project+</b> to import a GitHub repository.</p>

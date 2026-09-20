@@ -456,9 +456,9 @@ function Settings() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          <TabsTrigger value="notifications">Notification Preferences</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">

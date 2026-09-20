@@ -11,7 +11,6 @@ function Privacy() {
   return (
     <div className="min-h-screen bg-background py-10 px-6">
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"><ArrowLeft className="size-4" /> Home</Link>
         <Logo />
         <h1 className="text-3xl font-display font-bold mt-6 mb-2">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
@@ -39,9 +38,11 @@ function Privacy() {
           </section>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-border flex gap-4 text-xs text-muted-foreground">
+        <div className="mt-10 pt-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
           <Link to="/terms-of-service" className="hover:text-foreground">Terms of Service</Link>
-          <Link to="/" className="hover:text-foreground">Home</Link>
+          <Link to="/" className="inline-flex items-center gap-1.5 font-semibold hover:text-foreground transition-colors">
+            <ArrowLeft className="size-3.5" /> Back to home
+          </Link>
         </div>
       </div>
     </div>

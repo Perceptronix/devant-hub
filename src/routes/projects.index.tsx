@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, GitPullRequest, Bug, Clock, Unlink, Loader2 } from "lucide-react";
+import { Plus, Clock, Unlink, Loader2 } from "lucide-react";
 import { Morph, Reveal, Rise } from "cube-motion/react";
 import { useState, useEffect } from "react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
@@ -16,6 +16,7 @@ import {
 import { fetchImportedProjects, insertImportedProject, removeImportedProject, ImportedProject,
 } from "@/lib/imported-projects";
 import { emitSync, useSyncListener } from "@/lib/sync";
+import { toast } from "sonner";
 import { useCurrentOrg } from "@/lib/current-org";
 import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 
@@ -65,7 +66,10 @@ function Projects() {
       try {
         const list = await listUserRepos(token);
         if (mounted) setRepos(list);
-      } catch (err) { console.error(err); }
+      } catch (err) {
+        console.error(err);
+        if (mounted) toast.error("Failed to load repositories. Check your GitHub connection.");
+      }
       finally { if (mounted) setFetchingRepos(false); }
     })();
     return () => { mounted = false; };
@@ -136,7 +140,7 @@ function Projects() {
       <PageHeader
         title="Projects"
         description="All repositories linked to your DevANT workspace."
-        action={<Button onClick={() => setOpen(true)} className="gap-1.5"><Plus className="size-4" /> New Project+</Button>}
+        action={<Button onClick={() => setOpen(true)} className="gap-1.5"><Plus className="size-4" /> New Project</Button>}
       />
 
       {projectsLoading ? (
@@ -147,8 +151,8 @@ function Projects() {
         <Rise>
           <div className="glass rounded-xl p-6">
           <h2 className="font-display font-semibold text-lg">No linked projects yet</h2>
-          <p className="text-sm text-muted-foreground mt-2">Click <b>New Project+</b> to import a GitHub repository.</p>
-          <Button onClick={() => setOpen(true)} className="gap-1.5 mt-4"><Plus className="size-4" /> New Project+</Button>
+          <p className="text-sm text-muted-foreground mt-2">Click <b>New Project</b> to import a GitHub repository.</p>
+          <Button onClick={() => setOpen(true)} className="gap-1.5 mt-4"><Plus className="size-4" /> New Project</Button>
           </div>
         </Rise>
       ) : (
@@ -170,16 +174,13 @@ function Projects() {
                 <div className="text-foreground truncate">{p.description || "No description"}</div>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><GitPullRequest className="size-3.5" /> live</span>
-                  <span className="flex items-center gap-1"><Bug className="size-3.5" /> live</span>
-                </div>
+                <div className="text-xs text-muted-foreground font-mono">{p.defaultBranch ?? "main"}</div>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs" onClick={() => handleSync(p.id)}>
                     <Morph active={syncingId === p.id} off="Sync" on="Synced" />
                   </Button>
                   <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                    <AlertDialogTrigger>
                       <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs text-danger hover:text-danger"><Unlink className="size-3" /> Disconnect</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

@@ -46,7 +46,7 @@ export function useAuth() {
   return { session, user: session?.user ?? null, loading };
 }
 
-export async function signInWithGitHub(redirectTo = `${window.location.origin}/`) {
+export async function signInWithGitHub(redirectTo = `${window.location.origin}/dashboard`) {
   const supabase = getSupabase();
   return supabase.auth.signInWithOAuth({
     provider: "github",

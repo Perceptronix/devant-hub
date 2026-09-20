@@ -30,7 +30,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       <CommandList>
         <CommandEmpty>No results.</CommandEmpty>
         <CommandGroup heading="Pages">
-          <CommandItem onSelect={() => go(() => navigate({ to: "/" }))}><LayoutDashboard className="size-4 mr-2" /> Dashboard</CommandItem>
+          <CommandItem onSelect={() => go(() => navigate({ to: "/dashboard" }))}><LayoutDashboard className="size-4 mr-2" /> Dashboard</CommandItem>
           <CommandItem onSelect={() => go(() => navigate({ to: "/projects" }))}><FolderGit2 className="size-4 mr-2" /> Projects</CommandItem>
           <CommandItem onSelect={() => go(() => navigate({ to: "/analytics" }))}><BarChart3 className="size-4 mr-2" /> Analytics</CommandItem>
           <CommandItem onSelect={() => go(() => navigate({ to: "/health" }))}><HeartPulse className="size-4 mr-2" /> Health & Burn</CommandItem>

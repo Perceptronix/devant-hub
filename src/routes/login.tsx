@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { Github } from "lucide-react";
+import { Github, ArrowLeft } from "lucide-react";
 import { signInWithGitHub, useAuth } from "@/lib/auth";
 import { useEffect } from "react";
 
@@ -15,7 +15,7 @@ function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/" });
+    if (!loading && user) navigate({ to: "/dashboard" });
   }, [user, loading, navigate]);
 
   return (
@@ -32,7 +32,7 @@ function Login() {
           Connect with GitHub to join your organization and start shipping with shared team context.
         </p>
 
-        <Button onClick={() => signInWithGitHub()} size="lg" className="w-full gap-2 h-14 text-base">
+        <Button onClick={() => signInWithGitHub()} size="lg" className="w-full gap-2 h-14 text-base cursor-pointer">
           <Github className="size-5" /> Continue with GitHub
         </Button>
 
@@ -41,6 +41,16 @@ function Login() {
           <p>
             New here? <Link to="/onboarding" className="text-foreground underline">Create your org</Link> and invite your team.
           </p>
+        </div>
+
+        {/* Standardized Bottom Back to Home Link */}
+        <div className="mt-8 pt-4 border-t border-border flex justify-start">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="size-3.5" /> Back to home
+          </Link>
         </div>
       </div>
 

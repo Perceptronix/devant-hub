@@ -21,7 +21,7 @@ import {
 
 // Settings is intentionally NOT in NAV — it lives in the account dropdown only.
 const NAV = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/projects", icon: FolderGit2, label: "Projects" },
   { to: "/analytics", icon: BarChart3, label: "Analytics" },
   { to: "/health", icon: HeartPulse, label: "Health" },
@@ -48,7 +48,7 @@ export function AppSidebar() {
   const NavList = ({ onClick }: { onClick?: () => void }) => (
     <>
       {NAV.map((item) => {
-        const active = item.to === "/" ? path === "/" : path.startsWith(item.to);
+        const active = item.to === "/dashboard" ? path === "/dashboard" : path.startsWith(item.to);
         const Icon = item.icon;
         return (
           <Link
@@ -112,7 +112,7 @@ export function AppSidebar() {
           <ChevronsUpDown
             className={cn(
               "size-3.5 text-muted-foreground shrink-0 transition-opacity duration-150",
-              expanded || inline ? "opacity-100" : "opacity-0"
+              expanded || inline ? "opacity-100" : "hidden"
             )}
           />
         </DropdownMenuTrigger>
@@ -191,7 +191,7 @@ export function AppSidebar() {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         className={cn(
-          "hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out",
+          "hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out overflow-hidden",
           expanded ? "w-[220px]" : "w-[56px]"
         )}
       >

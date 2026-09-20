@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Mail, ShieldCheck, ArrowRight, Github } from "lucide-react";
+import { Mail, ShieldCheck, ArrowRight, Github, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, signInWithGitHub } from "@/lib/auth";
 import { getOrgInviteByToken } from "@/lib/org-invites";
@@ -140,9 +140,9 @@ function InvitePage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-background">
         <div className="glass rounded-3xl p-8 w-full max-w-lg text-center">
-          {/* ponytail: direct Link elements avoid broken asChild wrappers */}
-          <Link to="/" className="mt-6 inline-flex items-center justify-center rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
-            Back to DevANT
+          <p className="text-muted-foreground text-sm mb-4">Invitation not found or expired.</p>
+          <Link to="/" className="inline-flex items-center justify-center gap-1.5 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
+            <ArrowLeft className="size-4" /> Back to home
           </Link>
         </div>
       </div>
@@ -215,7 +215,6 @@ function InvitePage() {
           >
             {declining ? "Declining…" : "Decline invitation"}
           </Button>
-          {/* ponytail: direct Link elements avoid broken asChild wrappers */}
           <Link to="/notifications" className="inline-flex items-center justify-center rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-elevated transition-colors">
             View notifications
           </Link>
@@ -226,6 +225,16 @@ function InvitePage() {
             Signed in as {user.email}. Switch to {invite.invitedEmail} before accepting.
           </p>
         )}
+
+        {/* Standardized Bottom Back to Home Link */}
+        <div className="mt-8 pt-4 border-t border-border flex justify-start">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="size-3.5" /> Back to home
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -24,6 +24,7 @@ function ProjectSettings() {
   const [syncing, setSyncing] = useState(false);
 
   function handleSync() {
+    if (!project) return;
     setSyncing(true);
     emitSync(project.id);
     window.setTimeout(() => setSyncing(false), 500);
@@ -61,7 +62,7 @@ function ProjectSettings() {
         <h2 className="font-display font-semibold text-danger mb-2">Danger zone</h2>
         <p className="text-sm text-muted-foreground mb-3">Disconnect this project from DevANT. The repository on GitHub is not affected.</p>
         <AlertDialog>
-          <AlertDialogTrigger asChild>
+          <AlertDialogTrigger>
             <Button variant="destructive" className="gap-1.5"><Unlink className="size-4" /> Disconnect project</Button>
           </AlertDialogTrigger>
           <AlertDialogContent>

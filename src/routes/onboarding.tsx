@@ -4,15 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, ArrowRight, Github } from "lucide-react";
-import { useAuth, signInWithGitHub } from "@/lib/auth";
+import { Plus, ArrowRight, ArrowLeft, X, Loader2, Check, AlertCircle, Building2, Mail, ChevronRight } from "lucide-react";
+import { useAuth, signInWithGitHub, getGitHubToken } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
+import { insertOrganization } from "@/lib/create-org";
 import { createOrgInvite } from "@/lib/org-invites";
-import { Morph, Rise } from "cube-motion/react";
+import { setStoredOrgId } from "@/lib/current-org";
+import { Logo } from "@/components/Logo";
+import { Rise } from "cube-motion/react";
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SS_STEP = "onboarding_step";
-const SS_ORG = "onboarding_orgId";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Create your org — DevANT" }] }),
@@ -20,306 +22,558 @@ export const Route = createFileRoute("/onboarding")({
 });
 
 function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-function clearSession() {
-  sessionStorage.removeItem(SS_STEP);
-  sessionStorage.removeItem(SS_ORG);
+async function validateGitHubOrg(login: string, user: any): Promise<{ valid: boolean; name?: string; message?: string }> {
+  const trimmed = login.trim();
+  if (!trimmed) return { valid: true };
+  try {
+    const token = getGitHubToken(user);
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github.v3+json",
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    const res = await fetch(`https://api.github.com/orgs/${encodeURIComponent(trimmed)}`, { headers });
+    if (res.status === 200) {
+      const data = await res.json();
+      return { valid: true, name: data.name || data.login };
+    } else if (res.status === 404) {
+      return { valid: false, message: "GitHub organization not found on GitHub." };
+    } else {
+      return { valid: false, message: `GitHub API status ${res.status}.` };
+    }
+  } catch (err: any) {
+    return { valid: false, message: err?.message || "Failed to validate GitHub org." };
+  }
 }
+
+import { OrganizationForm, OrgFormFields } from "@/components/OrganizationForm";
+
+// ─── Step 0 — Organization ────────────────────────────────────────────────────
+
+function OrgStep({
+  form,
+  onChange,
+  onNext,
+}: {
+  form: OrgFormFields;
+  onChange: (updater: (prev: OrgFormFields) => OrgFormFields) => void;
+  onNext: () => void;
+}) {
+  const { user } = useAuth();
+  const [isValid, setIsValid] = useState(false);
+
+  const handleNextClick = async () => {
+    if (!user) {
+      await signInWithGitHub(`${window.location.origin}/onboarding`);
+      return;
+    }
+    if (!isValid) {
+      toast.error("Please provide a valid organization name, available slug, and valid GitHub org.");
+      return;
+    }
+    onNext();
+  };
+
+  return (
+    <Rise key="org">
+      <OrganizationForm fields={form} onChange={onChange} onValidationChange={setIsValid}>
+        <div className="pt-2 flex justify-end">
+          <Button onClick={handleNextClick} disabled={!isValid} className="gap-2 cursor-pointer">
+            Continue to Departments <ArrowRight className="size-4" />
+          </Button>
+        </div>
+      </OrganizationForm>
+    </Rise>
+  );
+}
+
+// ─── Step 1 — Departments ─────────────────────────────────────────────────────
+
+function DepartmentsStep({
+  departments,
+  input,
+  onDepartmentsChange,
+  onInputChange,
+  onNext,
+  onSkip,
+}: {
+  departments: string[];
+  input: string;
+  onDepartmentsChange: (updater: (prev: string[]) => string[]) => void;
+  onInputChange: (val: string) => void;
+  onNext: () => void;
+  onSkip: () => void;
+}) {
+  const add = () => {
+    const v = input.trim();
+    if (!v || departments.includes(v)) return;
+    onDepartmentsChange((d) => [...d, v]);
+    onInputChange("");
+  };
+
+  const remove = (name: string) => onDepartmentsChange((d) => d.filter((x) => x !== name));
+
+  return (
+    <Rise key="depts">
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Add departments <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">Group projects and teams by department. You can manage these later in Settings.</p>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => onInputChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add();
+              }
+            }}
+            placeholder="e.g. Engineering, Product, Design"
+            className="flex-1"
+          />
+          <Button onClick={add} variant="outline" className="gap-1.5 shrink-0 cursor-pointer" disabled={!input.trim()}>
+            <Plus className="size-4" /> Add department
+          </Button>
+        </div>
+        {departments.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {departments.map((d) => (
+              <span key={d} className="flex items-center gap-1.5 rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-sm font-medium text-foreground">
+                <Building2 className="size-3.5 text-primary" />
+                {d}
+                <button onClick={() => remove(d)} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer ml-1" aria-label={`Remove ${d}`}>
+                  <X className="size-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="pt-2 flex items-center justify-between">
+          <Button variant="ghost" onClick={onSkip} className="text-muted-foreground cursor-pointer">
+            Skip departments
+          </Button>
+          <Button onClick={onNext} className="gap-2 cursor-pointer">
+            Continue to Invites <ArrowRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+    </Rise>
+  );
+}
+
+// ─── Step 2 — Invites & Commit ────────────────────────────────────────────────
+
+interface PendingInvite {
+  email: string;
+  role: "member" | "admin";
+  department?: string;
+}
+
+function InvitesStep({
+  departments,
+  invites,
+  email,
+  role,
+  department,
+  onInvitesChange,
+  onEmailChange,
+  onRoleChange,
+  onDeptChange,
+  onSubmitAll,
+  onSkipAndSubmit,
+  committing,
+}: {
+  departments: string[];
+  invites: PendingInvite[];
+  email: string;
+  role: "member" | "admin";
+  department: string;
+  onInvitesChange: (updater: (prev: PendingInvite[]) => PendingInvite[]) => void;
+  onEmailChange: (val: string) => void;
+  onRoleChange: (val: "member" | "admin") => void;
+  onDeptChange: (val: string) => void;
+  onSubmitAll: () => void;
+  onSkipAndSubmit: () => void;
+  committing: boolean;
+}) {
+  const addInvite = () => {
+    const e = email.trim().toLowerCase();
+    if (!e || !e.includes("@")) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    if (invites.some((inv) => inv.email === e)) {
+      toast.error("This email is already added to the invite list.");
+      return;
+    }
+    onInvitesChange((prev) => [...prev, { email: e, role, department: department || undefined }]);
+    onEmailChange("");
+  };
+
+  const removeInvite = (targetEmail: string) => {
+    onInvitesChange((prev) => prev.filter((i) => i.email !== targetEmail));
+  };
+
+  return (
+    <Rise key="invites">
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Invite teammates <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">Invite team members to join your organization. Assign roles and optional departments.</p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-12">
+          <Input
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addInvite();
+              }
+            }}
+            placeholder="colleague@example.com"
+            type="email"
+            className="sm:col-span-5"
+          />
+          <select
+            value={role}
+            onChange={(e) => onRoleChange(e.target.value as "member" | "admin")}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none sm:col-span-3"
+          >
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+          <select
+            value={department}
+            onChange={(e) => onDeptChange(e.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none sm:col-span-4"
+          >
+            <option value="">No department</option>
+            {departments.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={addInvite} variant="outline" disabled={!email.trim()} className="gap-1.5 shrink-0 cursor-pointer">
+            <Plus className="size-4" /> Add invite to list
+          </Button>
+        </div>
+
+        {invites.length > 0 && (
+          <div className="rounded-xl border border-border p-4 space-y-2 bg-surface-elevated/40">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pending invites to send ({invites.length})</p>
+            <div className="space-y-2">
+              {invites.map((inv) => (
+                <div key={inv.email} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm">
+                  <div className="flex items-center gap-2 truncate">
+                    <Mail className="size-4 text-primary shrink-0" />
+                    <span className="font-medium text-foreground truncate">{inv.email}</span>
+                    <span className="rounded-full bg-surface-elevated border border-border px-2 py-0.5 text-xs text-muted-foreground capitalize">
+                      {inv.role}
+                    </span>
+                    {inv.department && (
+                      <span className="rounded-full bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 text-xs font-medium">
+                        {inv.department}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => removeInvite(inv.email)}
+                    className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
+                    aria-label={`Remove ${inv.email}`}
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="pt-4 flex items-center justify-between border-t border-border">
+          <Button variant="ghost" onClick={onSkipAndSubmit} disabled={committing} className="text-muted-foreground cursor-pointer">
+            Skip invites & create org
+          </Button>
+          <Button onClick={onSubmitAll} disabled={committing} className="gap-2 cursor-pointer bg-primary text-primary-foreground">
+            {committing ? (
+              <><Loader2 className="size-4 animate-spin" /> Creating organization…</>
+            ) : (
+              <>Create organization <ArrowRight className="size-4" /></>
+            )}
+          </Button>
+        </div>
+      </div>
+    </Rise>
+  );
+}
+
+// ─── Shell ────────────────────────────────────────────────────────────────────
+
+const STEP_LABELS = ["Organization", "Departments", "Invites"];
 
 function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Restore step/orgId from sessionStorage so nav away + back doesn't reset progress
-  const [step, setStepRaw] = useState(() => Number(sessionStorage.getItem(SS_STEP) ?? 0));
-  const [orgId, setOrgIdRaw] = useState<string | null>(() => sessionStorage.getItem(SS_ORG));
+  const [step, setStepRaw] = useState(() => {
+    const s = Number(sessionStorage.getItem(SS_STEP) ?? 0);
+    return isNaN(s) ? 0 : s;
+  });
 
-  const setStep = (n: number) => { sessionStorage.setItem(SS_STEP, String(n)); setStepRaw(n); };
-  const setOrgId = (id: string) => { sessionStorage.setItem(SS_ORG, id); setOrgIdRaw(id); };
-
-  const [orgName, setOrgName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [githubOrgLogin, setGithubOrgLogin] = useState("");
+  // Step 0 Form State
+  const [orgForm, setOrgForm] = useState<OrgFormFields>({
+    orgName: "",
+    slug: "",
+    slugEdited: false,
+    description: "",
+    githubLogin: "",
+  });
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
-  const [creating, setCreating] = useState(false);
-  const [departments, setDepartments] = useState<string[]>(["Backend", "Design", "Platform"]);
-  const [newDepartment, setNewDepartment] = useState("");
+  const [ghStatus, setGhStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+  const [ghOrgName, setGhOrgName] = useState<string>("");
+
+  // Step 1 Departments Form State
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [deptInput, setDeptInput] = useState("");
+
+  // Step 2 Invites Form State
+  const [invites, setInvites] = useState<PendingInvite[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"member" | "admin">("member");
-  const [pendingInvites, setPendingInvites] = useState<Array<{ id: string; invitedEmail: string }>>([]);
-  const [isInviting, setIsInviting] = useState(false);
+  const [inviteDept, setInviteDept] = useState("");
 
-  // Auto-fill slug from org name (only when user hasn't manually edited slug)
-  const [slugEdited, setSlugEdited] = useState(false);
-  useEffect(() => {
-    if (!slugEdited && orgName) setSlug(slugify(orgName));
-  }, [orgName, slugEdited]);
+  const [committing, setCommitting] = useState(false);
 
-  // Debounced slug availability check
-  useEffect(() => {
-    if (!slug.trim()) { setSlugStatus("idle"); return; }
-    if (!SLUG_REGEX.test(slug)) { setSlugStatus("invalid"); return; }
-    let mounted = true;
-    setSlugStatus("checking");
-    const timer = window.setTimeout(async () => {
-      try {
-        const { data } = await getSupabase().from("organizations").select("id").eq("slug", slug).limit(1);
-        if (mounted) setSlugStatus(data?.length ? "taken" : "available");
-      } catch {
-        if (mounted) setSlugStatus("invalid");
-      }
-    }, 400);
-    return () => { mounted = false; window.clearTimeout(timer); };
-  }, [slug]);
+  const setStep = (n: number) => {
+    sessionStorage.setItem(SS_STEP, String(n));
+    setStepRaw(n);
+  };
 
-  const slugHint = useMemo(() => {
-    if (slugStatus === "checking") return "Checking availability…";
-    if (slugStatus === "taken") return "This slug is already taken.";
-    if (slugStatus === "available") return "Slug is available.";
-    if (slugStatus === "invalid") return "Lowercase letters, numbers and hyphens only.";
-    return "Auto-generated from your organization name.";
-  }, [slugStatus]);
+  const clearSession = () => {
+    sessionStorage.removeItem(SS_STEP);
+  };
 
-  const canCreateOrg = orgName.trim().length >= 2 && orgName.trim().length <= 50 && slugStatus === "available";
+  const isOrgStepValid = useMemo(() => {
+    const nameValid = orgForm.orgName.trim().length >= 2 && orgForm.orgName.trim().length <= 50;
+    const slugValid = slugStatus === "available";
+    const ghValid = !orgForm.githubLogin.trim() || ghStatus === "valid";
+    return nameValid && slugValid && ghValid;
+  }, [orgForm.orgName, orgForm.githubLogin, slugStatus, ghStatus]);
 
-  const handleCreateOrg = async () => {
+  const handleBack = () => {
+    if (step > 0) {
+      setStep(step - 1);
+    } else {
+      clearSession();
+      navigate({ to: "/" });
+    }
+  };
+
+  // ─── Final Commit Action ──────────────────────────────────────────────────
+  const handleCommitAll = async (skipInvites = false) => {
     if (!user) {
       await signInWithGitHub(`${window.location.origin}/onboarding`);
       return;
     }
-    if (!canCreateOrg) { toast.error("Please choose a valid organization name and slug."); return; }
-    setCreating(true);
+    if (!isOrgStepValid) {
+      toast.error("Please ensure Organization details are complete and valid.");
+      setStep(0);
+      return;
+    }
+
+    setCommitting(true);
     try {
-      const supabase = getSupabase();
-      const { data: org, error } = await supabase
-        .from("organizations")
-        .insert({
-          name: orgName.trim(),
-          slug: slug.trim(),
-          description: description.trim() || null,
-          github_org_login: githubOrgLogin.trim() || null,
-          owner_id: user.id,
-        })
-        .select("id, slug, name")
-        .single();
-      if (error || !org) throw error ?? new Error("Failed to create organization.");
-
-      const { error: memberError } = await supabase.from("org_members").insert({
-        org_id: org.id,
-        user_id: user.id,
-        role: "owner",
-        status: "accepted",
-        joined_at: new Date().toISOString(),
+      // 1. Create Organization in Supabase
+      const org = await insertOrganization({
+        name: orgForm.orgName.trim(),
+        slug: orgForm.slug.trim(),
+        description: orgForm.description.trim(),
+        githubOrgLogin: orgForm.githubLogin.trim(),
+        ownerId: user.id,
       });
-      if (memberError) throw memberError;
 
-      setOrgId(org.id);
-      setStep(1);
-      toast.success("Organization created. Add your team next.");
-    } catch (err) {
-      console.error("onboarding create org", err);
-      toast.error("Unable to create organization. Try a different slug.");
+      // 2. Insert Departments in Supabase (if any)
+      if (departments.length > 0) {
+        const supabase = getSupabase();
+        const deptRows = departments.map((name) => ({
+          org_id: org.id,
+          name,
+        }));
+        const { error: deptErr } = await supabase.from("departments").insert(deptRows);
+        if (deptErr) {
+          console.error("Failed to insert departments:", deptErr);
+          toast.error(`Organization created, but saving departments failed: ${deptErr.message}`);
+        }
+      }
+
+      // 3. Fire Invites (if any)
+      const invitesToSend = skipInvites ? [] : invites;
+      if (invitesToSend.length > 0) {
+        let sentCount = 0;
+        let errCount = 0;
+        for (const inv of invitesToSend) {
+          try {
+            await createOrgInvite({
+              data: {
+                orgId: org.id,
+                invitedEmail: inv.email,
+                inviterId: user.id,
+                inviterName: (user.user_metadata as any)?.full_name || user.email || "DevANT",
+                inviterEmail: (user.email || "").toLowerCase(),
+                baseUrl: window.location.origin,
+                role: inv.role,
+              },
+            });
+            sentCount++;
+          } catch (err: any) {
+            console.error(`Failed to invite ${inv.email}:`, err);
+            errCount++;
+          }
+        }
+        if (errCount > 0) {
+          toast.warning(`Org created. Sent ${sentCount} invite(s), ${errCount} failed.`);
+        } else {
+          toast.success(`Organization created & ${sentCount} invite(s) sent!`);
+        }
+      } else {
+        toast.success("Organization created successfully!");
+      }
+
+      // 4. Activate new org & redirect
+      setStoredOrgId(org.id);
+      clearSession();
+      navigate({ to: "/dashboard" });
+    } catch (err: any) {
+      console.error("Failed creating organization:", err);
+      toast.error(err?.message ?? "Failed to create organization. Please try again.");
     } finally {
-      setCreating(false);
+      setCommitting(false);
     }
   };
-
-  const addDepartment = () => {
-    const value = newDepartment.trim();
-    if (!value || departments.includes(value)) return;
-    setDepartments((cur) => [...cur, value]);
-    setNewDepartment("");
-  };
-
-  const handleInviteMember = async () => {
-    if (!user || !orgId) return;
-    const email = inviteEmail.trim().toLowerCase();
-    if (!email || !email.includes("@")) { toast.error("Enter a valid email address."); return; }
-    setIsInviting(true);
-    try {
-      const result = await createOrgInvite({
-        data: {
-          orgId,
-          invitedEmail: email,
-          inviterId: user.id,
-          inviterName: (user.user_metadata as any)?.full_name || user.email || "DevANT",
-          inviterEmail: (user.email || "").toLowerCase(),
-          baseUrl: window.location.origin,
-        },
-      });
-      setPendingInvites((cur) => [...cur, { id: result.id, invitedEmail: result.invitedEmail }]);
-      setInviteEmail("");
-      toast.success(`Invite sent to ${email}`);
-    } catch (err) {
-      console.error("Failed to send invite", err);
-      toast.error("Failed to send invite.");
-    } finally {
-      setIsInviting(false);
-    }
-  };
-
-  const handleFinish = () => {
-    clearSession();
-    navigate({ to: "/projects" });
-  };
-
-  const goToDashboard = () => {
-    clearSession();
-    navigate({ to: "/" });
-  };
-
-  const STEPS = ["Organization", "Departments", "Invites"];
 
   return (
     <div className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-4xl">
-        <div className="flex flex-col gap-6 rounded-xl border border-border bg-surface p-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Onboarding</p>
-              <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">Create your organization and invite your team.</h1>
-            </div>
-            {/* ponytail: conditional render at the data level — no layout split needed because __root.tsx already isolates /onboarding from AppShell */}
-            {!user && <Link to="/login" className="text-sm text-muted-foreground underline hover:text-foreground">Sign in</Link>}
+      <div className="mx-auto w-full max-w-2xl">
+        {/* Onboarding Shell Card */}
+        <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-8 shadow-lg">
+          {/* Top Bar Navigation (Logo & Sign in) */}
+          <div className="flex items-center justify-between border-b border-border pb-5">
+            <Link to="/" onClick={clearSession} className="flex items-center gap-2 hover:opacity-85 transition-opacity">
+              <Logo />
+            </Link>
+            {!user && (
+              <Link to="/login" className="text-sm text-muted-foreground underline hover:text-foreground">
+                Sign in
+              </Link>
+            )}
           </div>
 
-          {/* Step indicator */}
+          {/* Header Description */}
+          <div>
+            <p className="text-xs uppercase tracking-widest text-primary font-semibold">Organization Onboarding</p>
+            <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground">
+              Create your organization and invite your team.
+            </h1>
+          </div>
+
+          {/* Step indicator pills */}
           <div className="flex items-center gap-2 text-sm">
-            {STEPS.map((label, i) => (
-              <div key={label} className="flex items-center gap-2">
-                <span className={`rounded-md px-3 py-1 text-xs font-medium ${i === step ? "bg-foreground text-background" : i < step ? "bg-surface-elevated text-foreground" : "bg-surface-elevated text-muted-foreground"}`}>
-                  {label}
-                </span>
-                {i < STEPS.length - 1 && <span className="text-border">›</span>}
-              </div>
-            ))}
+            {STEP_LABELS.map((label, i) => {
+              const isCurrent = i === step;
+              const isAllowed = i === 0 || isOrgStepValid;
+              return (
+                <div key={label} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => isAllowed && setStep(i)}
+                    disabled={!isAllowed}
+                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      isCurrent
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : isAllowed
+                        ? "bg-surface-elevated text-foreground hover:bg-surface-elevated/80 cursor-pointer"
+                        : "bg-surface-elevated/40 text-muted-foreground cursor-not-allowed opacity-60"
+                    }`}
+                  >
+                    {i < step && <Check className="size-3 shrink-0 text-emerald-400" />}
+                    {label}
+                  </button>
+                  {i < STEP_LABELS.length - 1 && <ChevronRight className="size-3.5 text-muted-foreground/40 shrink-0" />}
+                </div>
+              );
+            })}
           </div>
 
-          {/* Step content */}
+          {/* Step Content */}
           {step === 0 && (
-            <Rise key={step}><div className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium">Organization name</label>
-                  <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Acme Labs" className="mt-2" />
-                  <p className="mt-1 text-xs text-muted-foreground">Required, 2–50 characters.</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Slug</label>
-                  <Input
-                    value={slug}
-                    onChange={(e) => { setSlugEdited(true); setSlug(e.target.value); }}
-                    placeholder="acme-labs"
-                    className="mt-2"
-                  />
-                  <p className={`mt-1 text-xs ${slugStatus === "taken" || slugStatus === "invalid" ? "text-amber-400" : "text-muted-foreground"}`}>{slugHint}</p>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Description</label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A place to ship faster with your team" className="mt-2" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">GitHub org login</label>
-                <Input value={githubOrgLogin} onChange={(e) => setGithubOrgLogin(e.target.value)} placeholder="github-org-login" className="mt-2" />
-                <p className="mt-1 text-xs text-muted-foreground">Optional. Helps auto-link repos and members.</p>
-              </div>
-            </div></Rise>
+            <OrgStep
+              form={orgForm}
+              onChange={setOrgForm}
+              onNext={() => setStep(1)}
+            />
           )}
-
           {step === 1 && (
-            <Rise key={step}><div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold">Add departments</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Optional. Helpful for grouping projects and teams.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {departments.map((d) => (
-                  <span key={d} className="rounded-md border border-border bg-surface-elevated px-3 py-1 text-sm">{d}</span>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={newDepartment}
-                  onChange={(e) => setNewDepartment(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addDepartment()}
-                  placeholder="Add a department"
-                />
-                <Button onClick={addDepartment} variant="outline" className="gap-1.5 shrink-0"><Plus className="size-4" /> Add</Button>
-              </div>
-              <p className="text-xs text-muted-foreground">You can manage departments later in settings.</p>
-            </div></Rise>
+            <DepartmentsStep
+              departments={departments}
+              input={deptInput}
+              onDepartmentsChange={setDepartments}
+              onInputChange={setDeptInput}
+              onNext={() => setStep(2)}
+              onSkip={() => setStep(2)}
+            />
           )}
-
           {step === 2 && (
-            <Rise key={step}><div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold">Invite teammates</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Send invitations so your team can join immediately.</p>
-              </div>
-              <div className="flex gap-2">
-                <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleInviteMember()} placeholder="team.member@example.com" />
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as "member" | "admin")}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-                >
-                  <option value="member">Member</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleInviteMember} disabled={isInviting || !inviteEmail.trim()} className="gap-2">
-                  <Github className="size-4" /><Morph active={isInviting} off="Send invite" on="Sending…" />
-                </Button>
-                <Button variant="outline" onClick={() => setInviteEmail("")} disabled={!inviteEmail}>Clear</Button>
-              </div>
-              {pendingInvites.length > 0 && (
-                <div className="rounded-md border border-border p-4">
-                  <p className="mb-2 text-sm font-medium">Pending invites</p>
-                  <div className="flex flex-wrap gap-2">
-                    {pendingInvites.map((inv) => (
-                      <span key={inv.id} className="rounded-md border border-border bg-surface-elevated px-3 py-1 text-sm">{inv.invitedEmail}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div></Rise>
+            <InvitesStep
+              departments={departments}
+              invites={invites}
+              email={inviteEmail}
+              role={inviteRole}
+              department={inviteDept}
+              onInvitesChange={setInvites}
+              onEmailChange={setInviteEmail}
+              onRoleChange={setInviteRole}
+              onDeptChange={setInviteDept}
+              onSubmitAll={() => handleCommitAll(false)}
+              onSkipAndSubmit={() => handleCommitAll(true)}
+              committing={committing}
+            />
           )}
 
-          {/* Navigation footer */}
-          <div className="flex items-center justify-between border-t border-border pt-5">
-            <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
-              Back
-            </Button>
-            <div className="flex items-center gap-3">
-              {step < 2 && (
-                <Button variant="link" onClick={goToDashboard} className="h-auto p-0 text-sm text-muted-foreground">
-                  Skip
+          {/* Bottom Card Footer: Step-to-step Back (Steps 1+) & Standardized Back to Home Link */}
+          <div className="border-t border-border pt-4 -mt-2 space-y-3">
+            {step > 0 && (
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBack}
+                  disabled={committing}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <ArrowLeft className="size-4" />
+                  Back to {STEP_LABELS[step - 1]}
                 </Button>
-              )}
-              {step === 0 && (
-                <Button onClick={handleCreateOrg} disabled={creating || !canCreateOrg}>
-                  {creating ? "Creating…" : "Create organization"}
-                </Button>
-              )}
-              {step === 1 && (
-                <Button onClick={() => setStep(2)} className="gap-2">
-                  Continue <ArrowRight className="size-4" />
-                </Button>
-              )}
-              {step === 2 && (
-                <Button onClick={handleFinish} className="gap-2">
-                  Finish setup <ArrowRight className="size-4" />
-                </Button>
-              )}
+              </div>
+            )}
+            <div className="flex justify-start">
+              <Link
+                to="/"
+                onClick={clearSession}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="size-3.5" /> Back to home
+              </Link>
             </div>
           </div>
         </div>
@@ -327,4 +581,3 @@ function Onboarding() {
     </div>
   );
 }
-

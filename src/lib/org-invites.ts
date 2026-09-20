@@ -9,6 +9,7 @@ const InviteInput = z.object({
   inviterName: z.string().min(1).max(200),
   inviterEmail: z.string().email(),
   baseUrl: z.string().url(),
+  role: z.enum(["owner", "admin", "member"]).optional(),
 });
 
 const InviteLookupInput = z.object({
@@ -64,7 +65,7 @@ export const createOrgInvite = createServerFn({ method: "POST" })
         user_id: null,
         invited_email: data.invitedEmail.toLowerCase(),
         invite_token: token,
-        role: "member",
+        role: data.role ?? "member",
         status: "pending",
         invited_by: data.inviterId,
         invited_at: new Date().toISOString(),

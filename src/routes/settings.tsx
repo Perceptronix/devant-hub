@@ -33,6 +33,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { createOrgInvite } from "@/lib/org-invites";
+import { insertOrganization } from "@/lib/create-org";
+import { setStoredOrgId } from "@/lib/current-org";
+import { OrganizationForm, OrgFormFields } from "@/components/OrganizationForm";
 import emailjs from "@emailjs/browser";
 
 export const Route = createFileRoute("/settings")({
@@ -89,8 +92,14 @@ function Settings() {
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [creatingDept, setCreatingDept] = useState(false);
   const [inviting, setInviting] = useState(false);
-  const [newOrgName, setNewOrgName] = useState("");
-  const [newOrgSlug, setNewOrgSlug] = useState("");
+  const [modalOrgForm, setModalOrgForm] = useState<OrgFormFields>({
+    orgName: "",
+    slug: "",
+    slugEdited: false,
+    description: "",
+    githubLogin: "",
+  });
+  const [isModalFormValid, setIsModalFormValid] = useState(false);
   const [newDeptName, setNewDeptName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [openCreateOrg, setOpenCreateOrg] = useState(false);
@@ -202,8 +211,12 @@ function Settings() {
   }, [selectedOrg]);
 
   const handleCreateOrg = async () => {
-    if (!newOrgName.trim() || !newOrgSlug.trim() || !user) {
+    if (!modalOrgForm.orgName.trim() || !modalOrgForm.slug.trim() || !user) {
       toast.error("Organization name and slug are required");
+      return;
+    }
+    if (!isModalFormValid) {
+      toast.error("Please provide a valid organization name, available slug, and valid GitHub org.");
       return;
     }
 
@@ -218,27 +231,32 @@ function Settings() {
 
     setCreatingOrg(true);
     try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("organizations")
-        .insert({
-          name: newOrgName.trim(),
-          slug: newOrgSlug.trim(),
-          owner_id: user.id,
-        })
-        .select()
-        .single();
+      const created = await insertOrganization({
+        name: modalOrgForm.orgName.trim(),
+        slug: modalOrgForm.slug.trim(),
+        description: modalOrgForm.description.trim(),
+        githubOrgLogin: modalOrgForm.githubLogin.trim(),
+        ownerId: user.id,
+      });
 
-      if (error) throw error;
-      setOrgs((prev) => [...prev, data as Organization]);
-      setSelectedOrg(data as Organization);
-      setNewOrgName("");
-      setNewOrgSlug("");
+      const fullOrg: Organization = {
+        id: created.id,
+        name: created.name,
+        slug: created.slug,
+        github_org_login: modalOrgForm.githubLogin.trim() || undefined,
+        owner_id: user.id,
+        created_at: new Date().toISOString(),
+      };
+
+      setOrgs((prev) => [...prev, fullOrg]);
+      setSelectedOrg(fullOrg);
+      setStoredOrgId(created.id);
+      setModalOrgForm({ orgName: "", slug: "", slugEdited: false, description: "", githubLogin: "" });
       setOpenCreateOrg(false);
-      toast.success("Organization created");
-    } catch (err) {
+      toast.success("Organization created successfully");
+    } catch (err: any) {
       console.error("Failed to create organization:", err);
-      toast.error("Failed to create organization");
+      toast.error(err?.message ?? "Failed to create organization");
     } finally {
       setCreatingOrg(false);
     }
@@ -523,50 +541,38 @@ function Settings() {
                 </p>
               ) : (
               <Dialog open={openCreateOrg} onOpenChange={setOpenCreateOrg}>
-                <DialogTrigger asChild>
+                <DialogTrigger>
                   <Button className="gap-1.5">
                     <Plus className="size-4" /> Create Organization
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-lg">
                   <DialogHeader>
                     <DialogTitle>Create Organization</DialogTitle>
                     <DialogDescription>Create a new organization workspace.</DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-3">
-                    <div>
-                      <Label>Organization Name</Label>
-                      <Input
-                        placeholder="e.g. Acme Corp"
-                        value={newOrgName}
-                        onChange={(e) => setNewOrgName(e.target.value)}
-                      />
+                  <OrganizationForm
+                    fields={modalOrgForm}
+                    onChange={setModalOrgForm}
+                    onValidationChange={setIsModalFormValid}
+                  >
+                    <div className="pt-2">
+                      <Button
+                        onClick={handleCreateOrg}
+                        disabled={creatingOrg || !isModalFormValid}
+                        className="w-full cursor-pointer"
+                      >
+                        {creatingOrg ? (
+                          <>
+                            <Loader2 className="size-4 mr-2 animate-spin" />
+                            Creating organization…
+                          </>
+                        ) : (
+                          "Create Organization"
+                        )}
+                      </Button>
                     </div>
-                    <div>
-                      <Label>Slug (URL-friendly)</Label>
-                      <Input
-                        placeholder="e.g. acme-corp"
-                        value={newOrgSlug}
-                        onChange={(e) =>
-                          setNewOrgSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"))
-                        }
-                      />
-                    </div>
-                    <Button
-                      onClick={handleCreateOrg}
-                      disabled={creatingOrg || !newOrgName.trim() || !newOrgSlug.trim()}
-                      className="w-full"
-                    >
-                      {creatingOrg ? (
-                        <>
-                          <Loader2 className="size-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        "Create"
-                      )}
-                    </Button>
-                  </div>
+                  </OrganizationForm>
                 </DialogContent>
               </Dialog>
               )}
@@ -584,7 +590,7 @@ function Settings() {
                     </div>
                     {isOrgOwner && (
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
+                        <AlertDialogTrigger>
                           <Button variant="destructive" size="sm" className="gap-1">
                             <Trash2 className="size-3" /> Delete Org
                           </Button>
@@ -624,7 +630,7 @@ function Settings() {
                     <h3 className="font-display font-semibold">Departments / Domains</h3>
                     {isOrgOwner && (
                       <Dialog open={openCreateDept} onOpenChange={setOpenCreateDept}>
-                        <DialogTrigger asChild>
+                        <DialogTrigger>
                           <Button size="sm" className="gap-1">
                             <Plus className="size-3" /> Add
                           </Button>
@@ -687,7 +693,7 @@ function Settings() {
                           </div>
                           {isOrgOwner && (
                             <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                              <AlertDialogTrigger>
                                 <button className="text-muted-foreground hover:text-danger">
                                   <Trash2 className="size-4" />
                                 </button>
@@ -721,7 +727,7 @@ function Settings() {
                     <h3 className="font-display font-semibold">Members</h3>
                     {isOrgOwner && (
                       <Dialog open={openInviteMember} onOpenChange={setOpenInviteMember}>
-                        <DialogTrigger asChild>
+                        <DialogTrigger>
                           <Button size="sm" className="gap-1">
                             <Mail className="size-3" /> Invite
                           </Button>
@@ -830,7 +836,7 @@ function Settings() {
                             </div>
                             {isOrgOwner && member.role !== "owner" && (
                               <AlertDialog>
-                                <AlertDialogTrigger asChild>
+                                <AlertDialogTrigger>
                                   <button className="text-muted-foreground hover:text-danger">
                                     <Trash2 className="size-4" />
                                   </button>

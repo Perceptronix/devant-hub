@@ -157,7 +157,11 @@ function DashboardView({ user }: { user: any }) {
                 <s.icon className={`size-4 ${s.iconColor}`} />
               </div>
               <div className="mt-3 flex h-9 items-center">
-                {loading ? <LoadingSpinner /> : <p className="font-display text-3xl font-bold text-foreground">{s.value}</p>}
+                {projectsLoading || loading ? (
+                  <div className="h-8 w-16 bg-surface-elevated/70 rounded animate-pulse" />
+                ) : (
+                  <p className="font-display text-3xl font-bold text-foreground">{s.value}</p>
+                )}
               </div>
             </div>
           ))}
@@ -174,8 +178,16 @@ function DashboardView({ user }: { user: any }) {
         </div>
 
         {projectsLoading ? (
-          <div className="flex min-h-36 items-center justify-center rounded-2xl border border-border bg-surface/50">
-            <GridSpinner />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl border border-border bg-surface p-5 animate-pulse flex items-start gap-3">
+                <div className="size-11 rounded-xl bg-surface-elevated/80 shrink-0" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-5 w-28 bg-surface-elevated/80 rounded" />
+                  <div className="h-3 w-20 bg-surface-elevated/50 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : projects.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-surface/30 p-12 text-center">

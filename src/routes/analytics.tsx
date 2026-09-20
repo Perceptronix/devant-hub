@@ -22,7 +22,7 @@ function Analytics() {
   const { user } = useAuth();
   const [trend, setTrend] = useState<any[]>([]);
   const [summary, setSummary] = useState({ deployFrequency: 0, leadTimeHours: 0, changeFailureRate: 0, mttrHours: 0 });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
   const [collaborators, setCollaborators] = useState<Array<{ login: string; avatar: string; commits: number; additions: number; deletions: number }>>([]);
   const [tick, setTick] = useState(0);
@@ -42,13 +42,18 @@ function Analytics() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      if (!user) return;
+      if (!user) { setLoading(false); return; }
+      setLoading(true);
       const projects = await fetchImportedProjects(user.id);
       const token = getGitHubToken(user);
       if (!token || projects.length === 0) {
-        setTrend(buildTrend()); setHasData(false); return;
+        if (mounted) {
+          setTrend(buildTrend());
+          setHasData(false);
+          setLoading(false);
+        }
+        return;
       }
-      setLoading(true);
       try {
         const points = buildTrend();
         const idx = new Map(points.map((p, i) => [p.day, i]));
@@ -147,20 +152,51 @@ function Analytics() {
   return (
     <>
       <PageHeader title="Analytics & DORA" description="Engineering performance over the last 14 days, aggregated across all imported projects." />
-      {loading && !hasData ? <div className="glass rounded-xl p-4 mb-4 text-sm text-muted-foreground">Fetching live data…</div> : null}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Deploy Freq" value={`${summary.deployFrequency}/day`} icon={Zap} accent="success" />
-        <StatCard label="Lead Time" value={`${summary.leadTimeHours}h`} icon={Clock} accent="cyan" />
-        <StatCard label="Failure Rate" value={`${summary.changeFailureRate}%`} icon={AlertTriangle} accent="warning" />
-        <StatCard label="MTTR" value={`${summary.mttrHours}h`} icon={ShieldCheck} accent="primary" />
+        <StatCard label="Deploy Freq" value={`${summary.deployFrequency}/day`} icon={Zap} accent="success" loading={loading} />
+        <StatCard label="Lead Time" value={`${summary.leadTimeHours}h`} icon={Clock} accent="cyan" loading={loading} />
+        <StatCard label="Failure Rate" value={`${summary.changeFailureRate}%`} icon={AlertTriangle} accent="warning" loading={loading} />
+        <StatCard label="MTTR" value={`${summary.mttrHours}h`} icon={ShieldCheck} accent="primary" loading={loading} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Chart title="Deployment Frequency"><BarChart data={trend}><CartesianGrid stroke="var(--border)" strokeDasharray="3 3" /><XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} /><YAxis stroke="var(--muted-foreground)" fontSize={11} /><Tooltip contentStyle={tipStyle} /><Bar dataKey="deploys" fill="var(--primary)" radius={[4, 4, 0, 0]} /></BarChart></Chart>
-        <Chart title="Lead Time (hours)"><LineChart data={trend}><CartesianGrid stroke="var(--border)" strokeDasharray="3 3" /><XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} /><YAxis stroke="var(--muted-foreground)" fontSize={11} /><Tooltip contentStyle={tipStyle} /><Line type="monotone" dataKey="leadTime" stroke="var(--cyan)" strokeWidth={2} /></LineChart></Chart>
-        <Chart title="Change Failure Rate"><LineChart data={trend}><CartesianGrid stroke="var(--border)" strokeDasharray="3 3" /><XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} /><YAxis stroke="var(--muted-foreground)" fontSize={11} /><Tooltip contentStyle={tipStyle} /><Line type="monotone" dataKey="failures" stroke="var(--warning)" strokeWidth={2} /></LineChart></Chart>
-        <Chart title="MTTR (hours)"><BarChart data={trend}><CartesianGrid stroke="var(--border)" strokeDasharray="3 3" /><XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} /><YAxis stroke="var(--muted-foreground)" fontSize={11} /><Tooltip contentStyle={tipStyle} /><Bar dataKey="mttr" fill="var(--danger)" radius={[4, 4, 0, 0]} /></BarChart></Chart>
+        <Chart title="Deployment Frequency" loading={loading} hasData={hasData}>
+          <BarChart data={trend}>
+            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+            <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+            <Tooltip contentStyle={tipStyle} />
+            <Bar dataKey="deploys" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </Chart>
+        <Chart title="Lead Time (hours)" loading={loading} hasData={hasData}>
+          <LineChart data={trend}>
+            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+            <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+            <Tooltip contentStyle={tipStyle} />
+            <Line type="monotone" dataKey="leadTime" stroke="var(--cyan)" strokeWidth={2} />
+          </LineChart>
+        </Chart>
+        <Chart title="Change Failure Rate" loading={loading} hasData={hasData}>
+          <LineChart data={trend}>
+            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+            <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+            <Tooltip contentStyle={tipStyle} />
+            <Line type="monotone" dataKey="failures" stroke="var(--warning)" strokeWidth={2} />
+          </LineChart>
+        </Chart>
+        <Chart title="MTTR (hours)" loading={loading} hasData={hasData}>
+          <BarChart data={trend}>
+            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+            <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+            <Tooltip contentStyle={tipStyle} />
+            <Bar dataKey="mttr" fill="var(--danger)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </Chart>
       </div>
 
       {/* Collaborator metrics */}
@@ -169,7 +205,22 @@ function Analytics() {
           <GitCommit className="size-4 text-primary" />
           <h3 className="font-display font-semibold text-sm">Top Contributors</h3>
         </div>
-        {collaborators.length === 0 ? (
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between p-3 bg-surface/50 rounded-lg animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="size-8 rounded-full bg-surface-elevated/80" />
+                  <div className="space-y-1.5">
+                    <div className="h-3 w-24 bg-surface-elevated/80 rounded" />
+                    <div className="h-2 w-36 bg-surface-elevated/50 rounded" />
+                  </div>
+                </div>
+                <div className="h-5 w-16 bg-surface-elevated/60 rounded" />
+              </div>
+            ))}
+          </div>
+        ) : collaborators.length === 0 ? (
           <div className="text-sm text-muted-foreground py-4">No contributor data available. Import projects to see metrics.</div>
         ) : (
           <div className="space-y-2">
@@ -201,11 +252,29 @@ function Analytics() {
   );
 }
 
-function Chart({ title, children }: { title: string; children: React.ReactElement }) {
+function Chart({ title, children, loading, hasData }: { title: string; children: React.ReactElement; loading?: boolean; hasData?: boolean }) {
   return (
     <div className="glass rounded-xl p-5">
       <h3 className="font-display font-semibold text-sm mb-3">{title}</h3>
-      <div style={{ height: 240 }}><ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer></div>
+      <div style={{ height: 240 }} className="relative flex items-center justify-center">
+        {loading ? (
+          <div className="w-full h-full flex flex-col justify-end gap-2 p-4 animate-pulse">
+            <div className="flex items-end gap-3 h-40 w-full justify-between border-b border-border pb-2">
+              {[40, 65, 30, 80, 50, 90, 45, 70, 35, 60, 85, 40, 75, 55].map((h, i) => (
+                <div key={i} className="w-full bg-surface-elevated/70 rounded-t" style={{ height: `${h}%` }} />
+              ))}
+            </div>
+            <div className="h-3 w-full bg-surface-elevated/40 rounded" />
+          </div>
+        ) : !hasData ? (
+          <div className="flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
+            <div className="text-xs font-medium">No deployment data recorded yet</div>
+            <div className="text-[11px] opacity-75 mt-1 max-w-xs">Link repositories and push deployments to populate live DORA charts.</div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
+        )}
+      </div>
     </div>
   );
 }

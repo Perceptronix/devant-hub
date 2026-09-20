@@ -28,8 +28,13 @@ import { fetchImportedProjects, type ImportedProject } from "@/lib/imported-proj
 // ─── Org segment ────────────────────────────────────────────────────────────
 
 function OrgSegment() {
-  const { orgs, currentOrg, switchOrg } = useCurrentOrg();
+  const { orgs, currentOrg, switchOrg, loading } = useCurrentOrg();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  if (loading) {
+    return <div className="h-5 w-28 bg-surface-elevated/70 animate-pulse rounded-md shrink-0" />;
+  }
 
   if (orgs.length === 0) {
     return (
@@ -44,7 +49,7 @@ function OrgSegment() {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors focus-visible:outline-none group">
         <Building2 className="size-3.5 text-muted-foreground shrink-0" />
         <span className="max-w-[140px] truncate">{currentOrg?.name ?? "Select org"}</span>
@@ -58,7 +63,10 @@ function OrgSegment() {
         {orgs.map((org) => (
           <DropdownMenuItem
             key={org.id}
-            onClick={() => switchOrg(org.id)}
+            onClick={() => {
+              switchOrg(org.id);
+              setOpen(false);
+            }}
             className="flex items-center gap-2 text-xs cursor-pointer"
           >
             <Building2 className="size-3.5 text-muted-foreground shrink-0" />
@@ -71,14 +79,20 @@ function OrgSegment() {
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => navigate({ to: "/onboarding" })}
+          onClick={() => {
+            setOpen(false);
+            navigate({ to: "/onboarding" });
+          }}
           className="flex items-center gap-2 text-xs cursor-pointer"
         >
           <Plus className="size-3.5" />
           New organization
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => navigate({ to: "/settings", search: { tab: "organizations" } as any })}
+          onClick={() => {
+            setOpen(false);
+            navigate({ to: "/settings", search: { tab: "organizations" } as any });
+          }}
           className="flex items-center gap-2 text-xs cursor-pointer text-muted-foreground"
         >
           Manage organizations

@@ -425,6 +425,56 @@ App-wide rule: Every standalone screen outside the main dashboard shell has **ex
    - *After*: Standardized both views to feature `<Link to="/"> <ArrowLeft /> Back to home </Link>` at the bottom of the card.
    - *Verification*: Exactly 1 `Back to home` link at bottom of card. Clicking navigates to `/`.
 
+---
+
+## Loading state + dropdown fixes
+
+### STEP 0 — Audit Before Fixing
+
+| Scope / Bug | Broken Symptom / Root Cause | Target Fix | Status |
+|---|---|---|---|
+| **Dashboard Stat Loaders** | Dashboard stat boxes (`Commits`, `Open PRs`, `Open Issues`, `Deployments`) showed literal `0` metrics initially while queries were resolving because `loading` state was false until `fetchImportedProjects` completed. | Add animated skeleton shimmer pills inside all 4 stat boxes while `projectsLoading \|\| loading` is `true`. Replace `<GridSpinner />` under Projects with card skeleton grid. | **✅ Fixed & Verified** |
+| **BUG 1: `/projects` Flashing State** | 1. `OrgSegment` rendered `"Create org"` fallback text whenever `orgs.length === 0` *before* checking `loading` state.<br>2. Content area rendered decorative `<GridSpinner />` (square grid) instead of layout-matching project card skeletons. | 1. Render `h-5 w-28 animate-pulse` skeleton pill in `NavBreadcrumb.tsx` when `loading` is true.<br>2. Coordinate `isLoading = projectsLoading \|\| orgLoading` in `projects.index.tsx` and render 3-card skeleton grid matching final layout. | **✅ Fixed & Verified** |
+| **BUG 2: Analytics & DORA Fake Zeros** | 1. `StatCard` items rendered `"0/day"`, `"0h"`, `"0%"`, `"0h"` immediately on page mount.<br>2. Recharts containers rendered empty bordered boxes with no loading state.<br>3. Banner `"Fetching live data..."` remained visible. | 1. Add `loading?: boolean` prop to `StatCard.tsx`, rendering shimmer pills while `loading` is true.<br>2. Render animated bar/grid chart skeletons inside `Chart` containers while `loading` is true.<br>3. Remove `"Fetching live data..."` banner and display clean empty state message ("No deployment data recorded yet") when resolved with no data. | **✅ Fixed & Verified** |
+| **BUG 3: Stuck Sidebar Dropdown** | Hovering/clicking account avatar opened portaled Radix `DropdownMenuContent`. Moving mouse into dropdown caused `<aside>` mouseLeave to fire (`hovered = false`), collapsing sidebar underneath the active dropdown menu. | 1. Track `accountOpen` state in `AppSidebar.tsx` (`expanded = hovered \|\| accountOpen`).<br>2. Keep sidebar expanded (`220px`) while dropdown is open.<br>3. Bind `open={accountOpen}` & `onOpenChange={setAccountOpen}` and close menu cleanly on item click, click outside, or Escape. | **✅ Fixed & Verified** |
+
+### Fixes Applied & File Changes
+
+1. **`src/components/NavBreadcrumb.tsx`**:
+   - `OrgSegment` checks `loading` state first and returns a `h-5 w-28 animate-pulse` shimmer pill before checking `orgs.length === 0`.
+   - Bound controlled `open` state and added explicit close on item selection.
+
+2. **`src/routes/projects.index.tsx`**:
+   - Destructured `loading: orgLoading` from `useCurrentOrg()`.
+   - Coordinated overall loading state: `const isLoading = projectsLoading || orgLoading;`.
+   - Replaced decorative `<GridSpinner />` with a 3-card layout-matching skeleton grid (`animate-pulse`).
+
+3. **`src/routes/dashboard.tsx`**:
+   - Stat boxes render a `<div className="h-8 w-16 bg-surface-elevated/70 rounded animate-pulse" />` shimmer pill when `projectsLoading || loading` is `true`.
+   - Replaced `<GridSpinner />` under Projects with a card skeleton grid matching project cards.
+
+4. **`src/components/StatCard.tsx`**:
+   - Added `loading?: boolean` prop.
+   - When `loading` is true, renders a `<div className="h-8 w-20 rounded bg-surface-elevated/80 animate-pulse mt-1" />` shimmer placeholder.
+
+5. **`src/routes/analytics.tsx`**:
+   - Initialized `loading` state to `true`.
+   - Passed `loading={loading}` to all 4 DORA stat cards.
+   - Rendered animated bar/grid chart skeletons inside `Chart` containers while `loading` is true.
+   - Rendered list item skeletons for `Top Contributors` while `loading` is true.
+   - Removed `"Fetching live data..."` banner and added clean empty state when `!loading && !hasData`.
+
+6. **`src/components/AppSidebar.tsx`**:
+   - Added `accountOpen` state: `const expanded = hovered || accountOpen;`.
+   - Bound `open={accountOpen}` and `onOpenChange={setAccountOpen}` on `<DropdownMenu>`.
+   - Set `accountOpen(false)` on item clicks (`Settings`, `Theme`, `Sign out`/`Sign in`), ensuring dropdown closes cleanly on click, click outside, and Escape.
+
+### Verification Results
+
+- **`npx tsc --noEmit`**: Clean compile (0 errors).
+- **Browser Verification**: Tested `/projects`, `/dashboard`, `/analytics`, and sidebar dropdown across repeated attempts using Playwright `browser_subagent`. Verified skeleton shimmers, seamless loading transitions, zero layout flashes, and smooth dropdown open/close behavior.
+
+
 
 
 

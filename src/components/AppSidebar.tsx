@@ -30,12 +30,13 @@ const NAV = [
 
 export function AppSidebar() {
   const [hovered, setHovered] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
   const [theme, setTheme] = useTheme();
   const navigate = useNavigate();
-  const expanded = hovered;
+  const expanded = hovered || accountOpen;
 
   useEffect(() => { setMobileOpen(false); }, [path]);
 
@@ -83,7 +84,7 @@ export function AppSidebar() {
   // Account dropdown — Supabase-style: avatar trigger, Settings + theme + sign out
   const AccountDropdown = ({ inline }: { inline?: boolean }) => (
     <div className="border-t border-sidebar-border p-2">
-      <DropdownMenu>
+      <DropdownMenu open={accountOpen} onOpenChange={setAccountOpen}>
         <DropdownMenuTrigger
           className={cn(
             "w-full flex items-center gap-3 px-2 py-2 rounded-lg transition-colors text-left",
@@ -142,7 +143,7 @@ export function AppSidebar() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            onClick={() => { navigate({ to: "/settings" }); setMobileOpen(false); }}
+            onClick={() => { setAccountOpen(false); navigate({ to: "/settings" }); setMobileOpen(false); }}
             className="gap-2 cursor-pointer"
           >
             <Settings className="size-3.5" />
@@ -150,7 +151,7 @@ export function AppSidebar() {
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => { setAccountOpen(false); setTheme(theme === "dark" ? "light" : "dark"); }}
             className="gap-2 cursor-pointer"
           >
             {theme === "dark"
@@ -164,7 +165,7 @@ export function AppSidebar() {
 
           {user ? (
             <DropdownMenuItem
-              onClick={() => { signOut(); setMobileOpen(false); }}
+              onClick={() => { setAccountOpen(false); signOut(); setMobileOpen(false); }}
               className="gap-2 cursor-pointer text-danger focus:text-danger focus:bg-danger/10"
             >
               <LogOut className="size-3.5" />
@@ -172,7 +173,7 @@ export function AppSidebar() {
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
-              onClick={() => { signInWithGitHub(); setMobileOpen(false); }}
+              onClick={() => { setAccountOpen(false); signInWithGitHub(); setMobileOpen(false); }}
               className="gap-2 cursor-pointer text-primary focus:text-primary focus:bg-primary/10"
             >
               <UserIcon className="size-3.5" />

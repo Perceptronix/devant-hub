@@ -28,7 +28,7 @@ export const Route = createFileRoute("/projects/")({
 function Projects() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
-  const { currentOrg } = useCurrentOrg();
+  const { currentOrg, loading: orgLoading } = useCurrentOrg();
   const [repos, setRepos] = useState<any[]>([]);
   const [allProjects, setAllProjects] = useState<ImportedProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
@@ -40,10 +40,12 @@ function Projects() {
   const [tick, setTick] = useState(0);
   useSyncListener(() => setTick((n) => n + 1));
 
+  const isLoading = projectsLoading || orgLoading;
+
   const linkedProjects = currentOrg
     ? allProjects.filter((p) => !p.org_id || p.org_id === currentOrg.id)
     : allProjects;
-
+  
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -143,9 +145,26 @@ function Projects() {
         action={<Button onClick={() => setOpen(true)} className="gap-1.5"><Plus className="size-4" /> New Project</Button>}
       />
 
-      {projectsLoading ? (
-        <div className="flex min-h-44 items-center justify-center rounded-xl border border-border bg-surface">
-          <GridSpinner />
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="glass rounded-xl p-5 space-y-4 animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="h-5 w-32 bg-surface-elevated/80 rounded" />
+                  <div className="h-3 w-24 bg-surface-elevated/50 rounded" />
+                </div>
+              </div>
+              <div className="bg-surface-elevated/40 rounded-lg p-3 space-y-2">
+                <div className="h-3 w-16 bg-surface-elevated/60 rounded" />
+                <div className="h-4 w-40 bg-surface-elevated/60 rounded" />
+              </div>
+              <div className="flex justify-between items-center pt-1">
+                <div className="h-3 w-12 bg-surface-elevated/50 rounded" />
+                <div className="h-6 w-20 bg-surface-elevated/60 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : linkedProjects.length === 0 ? (
         <Rise>

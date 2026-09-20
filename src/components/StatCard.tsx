@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
-export function StatCard({ label, value, delta, icon: Icon, accent }: {
+export function StatCard({ label, value, delta, icon: Icon, accent, loading }: {
   label: string;
   value: number | string;
   delta?: number;
   icon?: React.ComponentType<{ className?: string }>;
   accent?: "primary" | "cyan" | "success" | "warning" | "danger";
+  loading?: boolean;
 }) {
   const [display, setDisplay] = useState(0);
   const numeric = typeof value === "number" ? value : null;
@@ -45,15 +46,21 @@ export function StatCard({ label, value, delta, icon: Icon, accent }: {
           </div>
         )}
       </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <div className="text-3xl font-display font-bold tracking-tight">
-          {numeric === null ? value : display.toLocaleString()}
-        </div>
-        {typeof delta === "number" && (
-          <div className={cn("flex items-center gap-0.5 text-xs", delta >= 0 ? "text-success" : "text-danger")}>
-            {delta >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-            {Math.abs(delta)}%
-          </div>
+      <div className="mt-3 flex items-baseline gap-2 min-h-9">
+        {loading ? (
+          <div className="h-8 w-20 rounded bg-surface-elevated/80 animate-pulse mt-1" />
+        ) : (
+          <>
+            <div className="text-3xl font-display font-bold tracking-tight">
+              {numeric === null ? value : display.toLocaleString()}
+            </div>
+            {typeof delta === "number" && (
+              <div className={cn("flex items-center gap-0.5 text-xs", delta >= 0 ? "text-success" : "text-danger")}>
+                {delta >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                {Math.abs(delta)}%
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

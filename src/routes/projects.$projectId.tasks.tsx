@@ -9,3 +9,4 @@ function TasksRoute() {
   const { projectId } = useParams({ from: "/projects/$projectId/tasks" });
   return <IssuesWorkbench projectId={projectId} />;
 }
+

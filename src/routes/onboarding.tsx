@@ -12,7 +12,7 @@ import { Morph, Rise } from "cube-motion/react";
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SS_STEP = "onboarding_step";
-const SS_ORG  = "onboarding_orgId";
+const SS_ORG = "onboarding_orgId";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Create your org — DevANT" }] }),
@@ -80,10 +80,10 @@ function Onboarding() {
   }, [slug]);
 
   const slugHint = useMemo(() => {
-    if (slugStatus === "checking")  return "Checking availability…";
-    if (slugStatus === "taken")     return "This slug is already taken.";
+    if (slugStatus === "checking") return "Checking availability…";
+    if (slugStatus === "taken") return "This slug is already taken.";
     if (slugStatus === "available") return "Slug is available.";
-    if (slugStatus === "invalid")   return "Lowercase letters, numbers and hyphens only.";
+    if (slugStatus === "invalid") return "Lowercase letters, numbers and hyphens only.";
     return "Auto-generated from your organization name.";
   }, [slugStatus]);
 
@@ -327,3 +327,4 @@ function Onboarding() {
     </div>
   );
 }
+

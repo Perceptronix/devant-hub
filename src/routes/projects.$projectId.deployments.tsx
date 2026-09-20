@@ -8,7 +8,7 @@ import { listDeployments, listDeploymentStatuses } from "@/lib/github/client";
 import { formatDistanceToNow } from "date-fns";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useSyncListener } from "@/lib/sync";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 
 export const Route = createFileRoute("/projects/$projectId/deployments")({
   component: Deployments,
@@ -65,7 +65,7 @@ function Deployments() {
       <h1 className="text-2xl font-display font-bold mb-4">Deployments</h1>
       {loading ? (
         <div className="glass flex min-h-72 items-center justify-center rounded-xl">
-          <LoadingSpinner />
+          <GridSpinner />
         </div>
       ) : (
         <>
@@ -109,3 +109,4 @@ function Deployments() {
     </>
   );
 }
+

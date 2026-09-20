@@ -24,7 +24,7 @@ import { useSyncListener } from "@/lib/sync";
 import { useCurrentOrg } from "@/lib/current-org";
 import { AppShell } from "@/components/AppShell";
 import { Logo } from "@/components/Logo";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import { Rise, Reveal } from "cube-motion/react";
 
 export const Route = createFileRoute("/")({
@@ -404,7 +404,7 @@ function Dashboard() {
 
         {projectsLoading ? (
           <div className="flex min-h-36 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02]">
-            <LoadingSpinner />
+            <GridSpinner />
           </div>
         ) : projects.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
@@ -448,3 +448,4 @@ function Dashboard() {
     </div>
   );
 }
+

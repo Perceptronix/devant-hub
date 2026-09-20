@@ -7,7 +7,7 @@ import { computeHealthScore, type HealthScore, type RepoMetrics } from "@/lib/he
 import { useSyncListener } from "@/lib/sync";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -403,7 +403,7 @@ function HealthDashboard() {
       {/* Metrics strip — KPI cards with inline sparklines */}
       {loading ? (
         <div className="flex min-h-24 items-center justify-center rounded-md border border-border bg-surface mb-4">
-          <LoadingSpinner />
+          <GridSpinner />
         </div>
       ) : <Rise>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-md overflow-hidden mb-4 border border-border">
@@ -455,7 +455,7 @@ function HealthDashboard() {
       <div className="rounded-md border border-border overflow-hidden">
         {loading ? (
           <div className="flex min-h-56 items-center justify-center bg-surface">
-            <LoadingSpinner />
+            <GridSpinner />
           </div>
         ) : error ? (
           <div className="px-4 py-8 text-center">
@@ -533,3 +533,4 @@ function HealthDashboard() {
     </>
   );
 }
+

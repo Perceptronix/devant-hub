@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { GitPullRequest } from "lucide-react";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
@@ -57,7 +57,7 @@ function Pulls() {
       <h1 className="text-2xl font-display font-bold mb-4">Pull Requests</h1>
       {loading && pulls.length === 0 ? (
         <div className="flex min-h-48 items-center justify-center">
-          <LoadingSpinner />
+          <GridSpinner />
         </div>
       ) : null}
       <Tabs defaultValue="open">
@@ -99,3 +99,4 @@ function Pulls() {
     </>
   );
 }
+

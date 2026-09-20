@@ -4,7 +4,7 @@ import { useAuth, getGitHubToken } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
 import { getRepo, listCommits, listPulls, listIssues, listDeployments } from "@/lib/github/client";
 import { StatCard } from "@/components/StatCard";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import { GitCommit, GitPullRequest, Bug, Rocket } from "lucide-react";
 import { useSyncListener } from "@/lib/sync";
 
@@ -57,13 +57,13 @@ function ProjectOverview() {
   if (loading) return (
     <>
       <div className="mb-6 flex min-h-16 items-center justify-center">
-        <LoadingSpinner />
+        <GridSpinner />
       </div>
       <div className="glass mb-6 flex min-h-36 items-center justify-center rounded-xl">
-        <LoadingSpinner />
+        <GridSpinner />
       </div>
       <div className="glass flex min-h-24 items-center justify-center rounded-xl">
-        <LoadingSpinner />
+        <GridSpinner />
       </div>
     </>
   );
@@ -94,3 +94,4 @@ function ProjectOverview() {
     </>
   );
 }
+

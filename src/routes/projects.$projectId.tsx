@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useParams, Link } from "@tanstack/react-router
 import { ProjectSidebar, ProjectMobileNav } from "@/components/ProjectSidebar";
 import { useProject } from "@/lib/use-project";
 import { ArrowLeft } from "lucide-react";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 
 export const Route = createFileRoute("/projects/$projectId")({
   component: ProjectLayout,
@@ -22,7 +22,7 @@ function ProjectLayout() {
         <ProjectSidebar projectId={projectId} name={project ? `${project.owner}/${project.repo}` : projectId} />
         <div className="flex-1 min-w-0">
           {loading && !project ? (
-            <div className="glass flex min-h-24 items-center justify-center rounded-xl"><LoadingSpinner /></div>
+            <div className="glass flex min-h-24 items-center justify-center rounded-xl"><GridSpinner /></div>
           ) : !project ? (
             <div className="glass rounded-xl p-6 text-sm text-muted-foreground">Project not found.</div>
           ) : (
@@ -33,3 +33,4 @@ function ProjectLayout() {
     </div>
   );
 }
+

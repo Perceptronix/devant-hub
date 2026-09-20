@@ -47,3 +47,4 @@ function Terms() {
     </div>
   );
 }
+

@@ -2,7 +2,7 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import { Crown, Users2, GitFork, Link2 } from "lucide-react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
@@ -166,7 +166,7 @@ function Team() {
 
       {loading && members.length === 0 ? (
         <div className="flex min-h-48 items-center justify-center">
-          <LoadingSpinner />
+          <GridSpinner />
         </div>
       ) : <>
       <Section title="Owner" icon={Crown} accent="warning">
@@ -258,3 +258,4 @@ function Section({
     </div>
   );
 }
+

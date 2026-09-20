@@ -17,7 +17,7 @@ import { fetchImportedProjects, insertImportedProject, removeImportedProject, Im
 } from "@/lib/imported-projects";
 import { emitSync, useSyncListener } from "@/lib/sync";
 import { useCurrentOrg } from "@/lib/current-org";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 
 export const Route = createFileRoute("/projects/")({
   head: () => ({ meta: [{ title: "Projects — DevANT" }] }),
@@ -141,7 +141,7 @@ function Projects() {
 
       {projectsLoading ? (
         <div className="flex min-h-44 items-center justify-center rounded-xl border border-border bg-surface">
-          <LoadingSpinner />
+          <GridSpinner />
         </div>
       ) : linkedProjects.length === 0 ? (
         <Rise>
@@ -236,3 +236,4 @@ function Projects() {
     </>
   );
 }
+

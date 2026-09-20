@@ -2,7 +2,7 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
@@ -61,7 +61,7 @@ function Commits() {
       <h1 className="text-2xl font-display font-bold mb-4">Commits</h1>
       {loading ? (
         <div className="glass flex min-h-72 items-center justify-center rounded-xl">
-          <LoadingSpinner />
+          <GridSpinner />
         </div>
       ) : rows.length === 0 ? (
         <div className="glass rounded-xl p-6 text-sm text-muted-foreground">No commits.</div>
@@ -110,3 +110,4 @@ function Commits() {
     </>
   );
 }
+

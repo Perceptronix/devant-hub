@@ -47,3 +47,4 @@ function Privacy() {
     </div>
   );
 }
+

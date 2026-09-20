@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { useAuth, getGitHubToken } from "@/lib/auth";
 import { useProject } from "@/lib/use-project";
 import { getCommit } from "@/lib/github/client";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 
 export const Route = createFileRoute("/projects/$projectId/commits/$sha")({
   component: CommitDetail,
@@ -51,7 +51,7 @@ function CommitDetail() {
     return () => { mounted = false; };
   }, [user, project, sha]);
 
-  if (loading) return <div className="glass flex min-h-48 items-center justify-center rounded-xl"><LoadingSpinner /></div>;
+  if (loading) return <div className="glass flex min-h-48 items-center justify-center rounded-xl"><GridSpinner /></div>;
   if (!c) return <div className="glass rounded-xl p-6">Commit not found.</div>;
 
   return (
@@ -135,3 +135,4 @@ function CommitDetail() {
     </>
   );
 }
+

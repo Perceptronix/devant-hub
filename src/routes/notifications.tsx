@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Bell, Check, Mail, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth, getGitHubToken } from "@/lib/auth";
@@ -165,7 +165,7 @@ function Notifications() {
       <div className="space-y-2">
         {loading || invitesLoading ? (
           <div className="flex min-h-24 items-center justify-center">
-            <LoadingSpinner />
+            <GridSpinner />
           </div>
         ) : <>
         {/* Pending Organization Invites */}
@@ -232,3 +232,4 @@ function Notifications() {
     </>
   );
 }
+

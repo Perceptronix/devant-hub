@@ -209,3 +209,4 @@ function Chart({ title, children }: { title: string; children: React.ReactElemen
     </div>
   );
 }
+

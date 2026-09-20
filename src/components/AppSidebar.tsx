@@ -75,14 +75,6 @@ export function AppSidebar() {
       
       {expanded || inline ? (
         <div className="space-y-1 pt-1">
-          <Link 
-            to="/settings" 
-            onClick={() => setMobileOpen(false)} 
-            className="flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors group"
-          >
-            <UserIcon className="size-4 group-hover:text-primary" /> 
-            <span>Profile & Settings</span>
-          </Link>
           {user ? (
             <button 
               onClick={() => { signOut(); setMobileOpen(false); }}

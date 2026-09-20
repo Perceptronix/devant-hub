@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2 } from "lucide-react";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import { emitSync, useSyncListener } from "@/lib/sync";
 
 interface Message {
@@ -342,7 +342,7 @@ function Messaging() {
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {loading ? (
             <div className="flex h-full items-center justify-center">
-              <LoadingSpinner />
+              <GridSpinner />
             </div>
           ) : messages.length === 0 ? (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
@@ -403,3 +403,4 @@ function Messaging() {
     </>
   );
 }
+

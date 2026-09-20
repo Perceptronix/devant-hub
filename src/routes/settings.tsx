@@ -5,14 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import { getSupabase } from "@/integrations/supabase/client";
 import { emitSync } from "@/lib/sync";
-import { Github, Sun, Moon, Plus, Trash2, Loader2, Copy, Mail, Check, X } from "lucide-react";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { Github, Sun, Moon, Plus, Trash2, Loader2, Mail } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner, GridSpinner } from "@/components/LoadingSpinner";
 import { useTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
 import {
@@ -476,11 +475,14 @@ function Settings() {
                 </div>
               </div>
             </div>
-            <Field label="Display name">
-              <Input defaultValue={meta.user_name || ""} />
+            <div className="rounded-lg bg-surface border border-border p-3 text-xs text-muted-foreground mb-4">
+              Your profile is managed by GitHub. To update your name or email, edit your <a href="https://github.com/settings/profile" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">GitHub profile</a>.
+            </div>
+            <Field label="Username">
+              <div className="text-sm py-2 px-3 rounded-md bg-surface border border-border text-muted-foreground select-all">{meta.user_name || meta.preferred_username || "—"}</div>
             </Field>
             <Field label="Email">
-              <Input defaultValue={user?.email || ""} />
+              <div className="text-sm py-2 px-3 rounded-md bg-surface border border-border text-muted-foreground select-all">{user?.email || "—"}</div>
             </Field>
           </Card>
         </TabsContent>
@@ -490,7 +492,7 @@ function Settings() {
             {/* Org Selector */}
             {loadingOrgs ? (
               <Card>
-                <div className="flex min-h-16 items-center justify-center"><LoadingSpinner /></div>
+                <div className="flex min-h-16 items-center justify-center"><GridSpinner /></div>
               </Card>
             ) : orgs.length > 0 && (
               <Card>
@@ -664,7 +666,7 @@ function Settings() {
                   </div>
                   {loadingOrgData ? (
                     <div className="flex min-h-24 items-center justify-center">
-                      <LoadingSpinner />
+                      <GridSpinner />
                     </div>
                   ) : departments.length === 0 ? (
                     <div className="text-sm text-muted-foreground">No departments yet</div>
@@ -762,7 +764,7 @@ function Settings() {
                   </div>
                   {loadingOrgData ? (
                     <div className="flex min-h-24 items-center justify-center">
-                      <LoadingSpinner />
+                      <GridSpinner />
                     </div>
                   ) : members.length === 0 ? (
                     <div className="text-sm text-muted-foreground">No members yet</div>
@@ -899,38 +901,47 @@ function Settings() {
                   Scopes: repo, read:org, read:user
                 </div>
               </div>
-              <Button variant="outline">{user ? "Connected" : "Connect"}</Button>
+              {user
+                ? <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1 text-xs font-medium text-success">● Connected</span>
+                : <span className="inline-flex items-center gap-1.5 rounded-full bg-surface border border-border px-3 py-1 text-xs font-medium text-muted-foreground">Not connected</span>
+              }
             </div>
           </Card>
         </TabsContent>
 
         <TabsContent value="notifications">
           <Card>
-            {[
-              "New commit",
-              "PR opened",
-              "PR merged",
-              "Deploy success",
-              "Deploy failure",
-              "Issue opened",
-            ].map((n) => (
-              <div
-                key={n}
-                className="flex items-center justify-between py-3 border-b border-border last:border-0"
-              >
-                <Label>{n}</Label>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2 text-xs">
-                    <span>Email</span>
-                    <Switch />
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span>In-app</span>
-                    <Switch defaultChecked />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-semibold">Notification Preferences</h3>
+              <span className="inline-flex items-center rounded-full bg-surface border border-border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">Coming soon</span>
+            </div>
+            <div className="opacity-50 pointer-events-none">
+              {[
+                "New commit",
+                "PR opened",
+                "PR merged",
+                "Deploy success",
+                "Deploy failure",
+                "Issue opened",
+              ].map((n) => (
+                <div
+                  key={n}
+                  className="flex items-center justify-between py-3 border-b border-border last:border-0"
+                >
+                  <Label>{n}</Label>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span>Email</span>
+                      <Switch disabled />
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span>In-app</span>
+                      <Switch disabled defaultChecked />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
@@ -949,3 +960,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
